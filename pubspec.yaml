@@ -12,7 +12,6 @@ topics:
   - agent
   - flutter
   - openai
-  - agenticai
 
 screenshots:
   - description: 'Vantura AI agent streaming a response in a Flutter chat UI'
