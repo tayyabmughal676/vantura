@@ -147,3 +147,6 @@ yarn-error.log*
 
 # Mac trash
 .Trashes
+
+# Generated Reports
+review_report.md

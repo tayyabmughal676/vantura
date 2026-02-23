@@ -7,15 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.1.3] - 2026-02-22
+## [0.1.2] - 2026-02-23
 
 ### Changed
-- **Master Guide Documentation**: Significant overhaul of the README to provide a "one-go" implementation guide. Added detailed sections for SQLite persistence, Multi-Agent hand-offs, and UI state synchronization.
-
-## [0.1.2] - 2026-02-22
-
-### Changed
-- **Documentation Balance**: Balanced the README to provide high-level marketing appeal alongside deep technical documentation (Custom Tools, Persistence, and Multi-Agent guides).
+- **Documentation Overhaul**: Significant overhaul of the README to provide a "master guide" implementation experience. Added detailed sections for SQLite persistence, Multi-Agent hand-offs, and UI state synchronization.
+- **Documentation Balance**: Balanced high-level marketing appeal with deep technical documentation (Custom Tools, Persistence, and Multi-Agent guides).
 
 ## [0.1.1] - 2026-02-22
 
