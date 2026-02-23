@@ -1,8 +1,6 @@
 name: vantura
 description: >-
-  An AI Agentic Framework for Flutter. Build LLM-powered agents that reason,
-  use tools, remember conversations, and stream responses in real-time.
-  Works with any OpenAI-compatible API.
+  An AI Agentic Framework for Flutter.
 version: 0.1.2
 homepage: https://github.com/tayyabmughal676/vantura
 repository: https://github.com/tayyabmughal676/vantura
