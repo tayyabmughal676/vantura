@@ -1,0 +1,21 @@
+# Development and build artifacts
+.dart_tool/
+build/
+.packages
+pubspec.lock
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Test files (not needed by consumers)
+test/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Private documentation and metadata
+docs/
+

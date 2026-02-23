@@ -1,0 +1,40 @@
+name: vantura
+description: >-
+  An AI Agentic Framework for Flutter. Build LLM-powered agents that reason,
+  use tools, remember conversations, and stream responses in real-time.
+  Works with any OpenAI-compatible API.
+version: 0.1.3
+homepage: https://github.com/datadaur/vantura
+repository: https://github.com/datadaur/vantura
+issue_tracker: https://github.com/datadaur/vantura/issues
+
+topics:
+  - ai
+  - llm
+  - agent
+  - flutter
+  - openai
+  - agenticai
+
+screenshots:
+  - description: 'Vantura AI agent streaming a response in a Flutter chat UI'
+    path: screenshots/demo.png
+
+environment:
+  sdk: ^3.11.0
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  google_fonts: ^8.0.2
+  connectivity_plus: ^6.0.0
+  device_info_plus: ^10.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.11.1
+  mockito: ^5.6.3

@@ -1,0 +1,248 @@
+# 🚀 Vantura
+
+### The Agentic AI Framework for Flutter. Build "Brains" directly in your app.
+
+Vantura is an **Agentic AI Framework** for building LLM-powered agents that **reason, think, and execute local tools** — all entirely on the client. Forget complex Python backends; Vantura gives your Flutter app an orchestrator that lives where your data lives.
+
+![Vantura Demo](screenshots/demo.png)
+
+[![Pub Version](https://img.shields.io/pub/v/vantura.svg)](https://pub.dev/packages/vantura)
+[![License: BSD-3](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
+[![Dart SDK](https://img.shields.io/badge/Dart-3.11+-blue.svg)](https://dart.dev)
+[![Flutter SDK](https://img.shields.io/badge/Flutter-3.22+-blue.svg)](https://flutter.dev)
+
+---
+
+## 📖 Table of Contents
+1. [Core Concepts](#-core-concepts)
+2. [Getting Started (One-Go Guide)](#-getting-started-one-go-guide)
+3. [The Memory System & Persistence](#-the-memory-system--persistence)
+4. [Custom Tools & JSON Schema](#-custom-tools--json-schema)
+5. [State & UI Integration](#-state--ui-integration)
+6. [Multi-Agent Coordination](#-multi-agent-coordination)
+7. [Error Handling & Resilience](#-error-handling--resilience)
+8. [Architectural Comparison](#-architectural-comparison)
+
+---
+
+## 🧠 Core Concepts
+
+Vantura is built on the **ReAct (Reason + Act) loop**. 
+1. **Thought**: The agent analyzes the user request.
+2. **Action**: It decides which local tool to call.
+3. **Observation**: It reads the tool's result.
+4. **Iteration**: It repeats until it has a final answer for the user.
+
+This loop happens **on-device**, allowing the agent to call functions that exist only in your Flutter world (like `Navigator.push` or `sqflite.insert`).
+
+---
+
+## 🚀 Getting Started (One-Go Guide)
+
+### 1. Installation
+Add `vantura` to your `pubspec.yaml`:
+```yaml
+dependencies:
+  vantura: ^0.1.3
+```
+
+### 2. Full Implementation Snippet
+Here is how you implement a fully-functional agent with tools and streaming in one go:
+
+```dart
+import 'package:vantura/core/index.dart';
+import 'package:vantura/tools/index.dart';
+
+void main() async {
+  // 1. Initialize the Provider Client
+  final client = VanturaClient(
+    apiKey: 'YOUR_API_KEY',
+    baseUrl: 'https://api.groq.com/openai/v1/chat/completions', // Or OpenAI/Ollama
+    model: 'llama-3.3-70b-versatile',
+  );
+
+  // 2. Setup Memory (In-memory for now)
+  final memory = VanturaMemory(sdkLogger, client);
+
+  // 3. Define the Agent
+  final agent = VanturaAgent(
+    name: 'orbit_assistant',
+    instructions: 'You are a helpful assistant. Use tools to help the user.',
+    memory: memory,
+    client: client,
+    tools: [
+      ...getStandardTools(), // Includes Calculator, Connectivity, Device Info
+      MyCustomTool(),        // Your app-specific logic
+    ],
+    state: VanturaState(),    // Tracks loading/progress
+    onToolError: (tool, error, stack) => print('Tool $tool failed: $error'),
+  );
+
+  // 4. Run with Streaming (SSE)
+  final cancellationToken = CancellationToken();
+  
+  await for (final response in agent.runStreaming(
+    'Check my internet and tell me the time',
+    cancellationToken: cancellationToken,
+  )) {
+    if (response.textChunk != null) {
+      stdout.write(response.textChunk); // Streamed token-by-token
+    }
+  }
+}
+```
+
+---
+
+## 💾 The Memory System & Persistence
+
+Vantura features a **Dual-Layer Memory**:
+- **Short-term**: A sliding window of the last X messages.
+- **Long-term memory**: Automatic LLM-powered **summarization**. When the message history exceeds the token limit, Vantura asks the LLM to compress older messages into a summary, preserving context without bloating the prompt.
+
+### Implementing Persistence (SQLite Example)
+To keep conversations after an app restart, implement `VanturaPersistence`:
+
+```dart
+class SQLitePersistence implements VanturaPersistence {
+  final Database db; // Your sqflite instance
+  
+  @override
+  Future<void> saveMessage(String role, String content, {bool isSummary = false}) async {
+    await db.insert('messages', {'role': role, 'content': content, 'is_summary': isSummary ? 1 : 0});
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> loadMessages() async {
+    return await db.query('messages', orderBy: 'id ASC');
+  }
+
+  @override
+  Future<void> clearMessages() async => await db.delete('messages');
+
+  @override
+  Future<void> deleteOldMessages(int limit) async {
+    // Logic to prune oldest messages
+  }
+}
+
+// Inject it:
+final memory = VanturaMemory(sdkLogger, client, persistence: SQLitePersistence(myDb));
+await memory.init(); // Loads history into memory
+```
+
+---
+
+## 🛠️ Custom Tools & JSON Schema
+
+Vantura uses a **Type-Safe Tool Framework**. You define the arguments as a class and Vantura generates the JSON Schema for the LLM.
+
+### Example: Navigation Tool
+Give your agent the ability to navigate your app by creating a tool that interacts with your `Router`.
+class NavArgs {
+  final String route;
+  NavArgs(this.route);
+  factory NavArgs.fromJson(Map<String, dynamic> j) => NavArgs(j['route']);
+}
+
+class NavigationTool extends VanturaTool<NavArgs> {
+  @override String get name => 'navigate';
+  @override String get description => 'Navigates to a specific screen in the app.';
+
+  @override
+  Map<String, dynamic> get parameters => SchemaHelper.generateSchema({
+    'route': SchemaHelper.stringProperty(
+        description: 'Target route (e.g. /settings, /profile)',
+        enumOptions: ['/settings', '/profile', '/home'],
+    ),
+  });
+
+  @override
+  Future<String> execute(NavArgs args) async {
+    // Access your app router here
+    // myRouter.go(args.route);
+    return "Successfully navigated to ${args.route}";
+  }
+
+  @override NavArgs parseArgs(Map<String, dynamic> j) => NavArgs.fromJson(j);
+}
+```
+
+---
+
+## 📱 State & UI Integration
+
+Vantura provides `VanturaState` (a `ChangeNotifier`) to sync the SDK's internal loop with your Flutter UI.
+
+```dart
+class ChatScreen extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Assuming agent.state is exposed via a provider
+    final state = ref.watch(agentStateProvider);
+
+    return Column(
+      children: [
+        if (state.isRunning) 
+           Text('Thinking... (Step: ${state.currentStep})'),
+        
+        if (state.errorMessage != null)
+           ErrorWidget(state.errorMessage!),
+      ],
+    );
+  }
+}
+```
+
+---
+
+## 🤝 Multi-Agent Coordination
+
+Need a team? `AgentCoordinator` lets you define specialized agents and automatically handles the hand-offs.
+
+```dart
+final billingAgent = VanturaAgent(name: 'BillingBot', instructions: 'Handle invoices...', ...);
+final supportAgent = VanturaAgent(name: 'SupportBot', instructions: 'Help with general queries...', ...);
+
+final coordinator = AgentCoordinator([billingAgent, supportAgent]);
+
+// The coordinator will call "transfer_to_agent" automatically!
+await for (final r in coordinator.runStreaming('Create an invoice for \$50')) { ... }
+```
+
+---
+
+## 🛡️ Error Handling & Resilience
+
+Vantura includes hooks for structured telemetry:
+
+```dart
+final agent = VanturaAgent(
+  // ...
+  onToolError: (tool, error, stack) => FirebaseCrashlytics.instance.recordError(error, stack),
+  onWarning: (msg) => print('⚠️ Vantura Warning: $msg'),
+  onAgentFailure: (err) => showGlobalErrorSnackBar(err),
+);
+```
+
+---
+
+## 📊 Architectural Comparison
+
+| Feature | OpenAI direct | LangChain (Backend) | **Vantura (Flutter)** |
+|---|---|---|---|
+| **Storage Access** | Cloud-only | Server-level | **Local (SQLite, Hive)** |
+| **System APIs** | No | Remote only | **Native (Sensors, GPS)** |
+| **Latency** | 1 Round-trip | 2+ Round-trips | **1 Round-trip (Direct)** |
+| **Auth** | Managed in app | Proxy required | **Native in app** |
+| **Privacy** | Shared via Server | Shared via Server | **Local-First (Private)** |
+
+---
+
+## 📄 License
+Vantura is open-source and released under the **BSD 3-Clause License**.
+
+---
+
+Built with ❤️ for the Flutter community by **DataDaur**. 
+For bug reports and feature requests, visit our [GitHub Repository](https://github.com/datadaur/vantura).

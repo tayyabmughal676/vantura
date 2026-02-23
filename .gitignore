@@ -1,0 +1,149 @@
+# https://dart.dev/guides/libraries/private-files
+
+# Created by https://www.toptal.com/developers/gitignore/api/flutter,dart,macos,visualstudiocode,androidstudio,intellij+all,git
+
+### AndroidStudio ###
+# User-specific stuff
+.idea/caches/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/modules/
+.idea/libraries/
+.idea/tasks.xml
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml
+.idea/codeStyles/
+.idea/dictionaries/
+.idea/shelf/
+
+# Gradle files
+.gradle/
+build/
+
+# Android Studio - Specific files
+*.iml
+*.ipr
+*.iws
+
+### AndroidStudio Patch ###
+# Android Studio-specific files
+.idea/material_design_extensions.xml
+
+### Flutter ###
+# Flutter/Dart related
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio / IntelliJ related
+android/**/gradle-wrapper.gradle
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+.idea/modules.xml
+.idea/copyright/
+*.iml
+*.ipr
+*.iws
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml
+.idea/codeStyles/
+.idea/dictionaries/
+.idea/shelf/
+
+# VS Code related
+.vscode/
+
+# Web related
+.web/
+
+# Exceptions to above
+!**/android/app/src/main/res/drawable-*/
+!**/android/app/src/main/res/mipmap-*/
+
+### Flutter Patch ###
+# Exceptions to above
+!.idea/runConfigurations/
+
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network\ Trash\ Folder
+Temporary\ Items
+.apdisk
+
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/code-actions-on-save.json
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+### Project Specific ###
+# Environment variables / API Keys
+.env
+.env.*
+!.env.example
+
+# Local configuration
+*.local
+
+# Secrets and credentials
+**/google-services.json
+**/GoogleService-Info.plist
+
+# Pubspec lock (optional for packages, but common to ignore)
+# pubspec.lock
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Mac trash
+.Trashes
