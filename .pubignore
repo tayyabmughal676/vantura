@@ -18,7 +18,6 @@ Thumbs.db
 
 # Private documentation and metadata
 docs/
-review_report.md
+review-report.md
 test_results.txt
 *.log
-
