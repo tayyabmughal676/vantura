@@ -5,10 +5,16 @@ import 'logger.dart';
 
 /// Tracks token usage out of a completed generation or run.
 class TokenUsage {
+  /// Number of tokens in the prompt.
   final int promptTokens;
+
+  /// Number of tokens in the generated completion.
   final int completionTokens;
+
+  /// Total tokens used in the interaction.
   final int totalTokens;
 
+  /// Creates a [TokenUsage] instance.
   const TokenUsage({
     required this.promptTokens,
     required this.completionTokens,
@@ -25,6 +31,9 @@ class TokenUsage {
   }
 }
 
+/// A response from the [VanturaAgent].
+///
+/// Contains text, tool calls, streaming chunks, and usage statistics.
 class VanturaResponse {
   /// Final text response from the agent (optional).
   final String? text;

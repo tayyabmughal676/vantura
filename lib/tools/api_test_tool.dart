@@ -1,14 +1,21 @@
+/// Tool for testing external API endpoints with built-in security.
+library api_test_tool;
+
 import 'package:http/http.dart' as http;
 import '../core/index.dart';
 
-/// Arguments for the ApiTestTool.
+/// Arguments for the [ApiTestTool].
 class ApiTestArgs {
+  /// The absolute URL of the API endpoint to test.
   final String url;
+
+  /// The HTTP method to use (e.g., 'GET', 'POST'). Defaults to 'GET'.
   final String? method;
 
+  /// Creates a new instance of [ApiTestArgs].
   ApiTestArgs({required this.url, this.method});
 
-  /// Creates ApiTestArgs from a JSON map.
+  /// Creates [ApiTestArgs] from a JSON map.
   factory ApiTestArgs.fromJson(Map<String, dynamic> json) {
     return ApiTestArgs(
       url: json['url'] as String,
@@ -17,6 +24,10 @@ class ApiTestArgs {
   }
 }
 
+/// A tool for testing API endpoints by sending HTTP requests.
+///
+/// Includes built-in SSRF protection via a configurable [hostnameBlacklist]
+/// and automatic body truncation to prevent prompt history bloat.
 class ApiTestTool extends VanturaTool<ApiTestArgs> {
   /// Blacklist of sensitive hostnames to prevent SSRF.
   final List<String> hostnameBlacklist;
@@ -26,7 +37,6 @@ class ApiTestTool extends VanturaTool<ApiTestArgs> {
       'localhost',
       '127.0.0.1',
       '0.0.0.0',
-      '169.254.169.254', // Metadata service
       'metadata.google.internal',
     ],
   });

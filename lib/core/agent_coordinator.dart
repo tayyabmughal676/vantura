@@ -1,10 +1,20 @@
+/// Core coordination logic for managing multiple Vantura agents.
+library agent_coordinator;
+
 import 'dart:async';
 import 'index.dart';
 
-/// Coordinates multiple [VanturaAgent]s, allowing them to hand off the conversation 
+/// Coordinates multiple [VanturaAgent]s, allowing them to hand off the conversation
 /// to each other based on user needs.
+///
+/// The [AgentCoordinator] acts as a router, managing which agent is currently
+/// handling the interaction and facilitating transfers between agents via
+/// a built-in transfer tool.
 class AgentCoordinator {
+  /// Map of all available agents, indexed by their [VanturaAgent.name].
   final Map<String, VanturaAgent> agents = {};
+
+  /// The agent currently responsible for processing user requests.
   late VanturaAgent activeAgent;
   String? _pendingTransfer;
 
@@ -28,7 +38,7 @@ class AgentCoordinator {
     }
   }
 
-  /// Triggers a handoff to the [targetAgentName]. 
+  /// Triggers a handoff to the [targetAgentName].
   /// The transfer will take effect on the NEXT run or iteration.
   void triggerHandoff(String targetAgentName) {
     if (agents.containsKey(targetAgentName)) {
@@ -37,15 +47,21 @@ class AgentCoordinator {
   }
 
   /// Runs the overall system, routing through agents as needed.
-  Future<VanturaResponse> run(String prompt, {CancellationToken? cancellationToken}) async {
+  Future<VanturaResponse> run(
+    String prompt, {
+    CancellationToken? cancellationToken,
+  }) async {
     // Standard run using active agent
-    final response = await activeAgent.run(prompt, cancellationToken: cancellationToken);
+    final response = await activeAgent.run(
+      prompt,
+      cancellationToken: cancellationToken,
+    );
 
     // If a transfer was requested during execution
     if (_pendingTransfer != null) {
       activeAgent = agents[_pendingTransfer]!;
       _pendingTransfer = null;
-      
+
       // Optionally, we could immediately trigger the new agent to respond back
       // Since memory is shared, the new agent will see the history
       // We'll leave it simple for now: the NEXT user query goes to the new agent.
@@ -60,7 +76,10 @@ class AgentCoordinator {
     String prompt, {
     CancellationToken? cancellationToken,
   }) async* {
-    final stream = activeAgent.runStreaming(prompt, cancellationToken: cancellationToken);
+    final stream = activeAgent.runStreaming(
+      prompt,
+      cancellationToken: cancellationToken,
+    );
 
     await for (final response in stream) {
       yield response;
@@ -84,24 +103,26 @@ class _AgentTransferTool extends VanturaTool<Map<String, dynamic>> {
   String get name => 'transfer_to_agent';
 
   @override
-  String get description => 'Transfer the conversation to another specialized agent. Only do this if the user request requires the specific expertise of the other agent.';
+  String get description =>
+      'Transfer the conversation to another specialized agent. Only do this if the user request requires the specific expertise of the other agent.';
 
   @override
   Map<String, dynamic> get parameters => {
-      'type': 'object',
-      'properties': {
-        'target_agent': {
-          'type': 'string',
-          'description': 'The exact name of the agent to transfer to.',
-          'enum': _coordinator.agents.keys.toList(),
-        },
-        'reason': {
-          'type': 'string',
-          'description': 'Reason for transfer so the next agent understands context.',
-        }
+    'type': 'object',
+    'properties': {
+      'target_agent': {
+        'type': 'string',
+        'description': 'The exact name of the agent to transfer to.',
+        'enum': _coordinator.agents.keys.toList(),
       },
-      'required': ['target_agent', 'reason']
-    };
+      'reason': {
+        'type': 'string',
+        'description':
+            'Reason for transfer so the next agent understands context.',
+      },
+    },
+    'required': ['target_agent', 'reason'],
+  };
 
   @override
   Map<String, dynamic> parseArgs(Map<String, dynamic> json) => json;
@@ -110,7 +131,7 @@ class _AgentTransferTool extends VanturaTool<Map<String, dynamic>> {
   Future<String> execute(Map<String, dynamic> args) async {
     final target = args['target_agent'] as String;
     final reason = args['reason'] as String;
-    
+
     if (!_coordinator.agents.containsKey(target)) {
       return 'Error: Agent "$target" not found. Available agents: ${_coordinator.agents.keys.join(', ')}';
     }

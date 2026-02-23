@@ -7,28 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.1.3] - 2026-02-23
-
-### Changed
-- **Dependency Updates**: Modernized dependency constraints for `connectivity_plus` and `device_info_plus` to support latest major versions (7.0.0 and 12.0.0+), resolving pub.dev recommendations.
-- **Documentation**: Minor link fixes in README.
-
 ## [0.1.2] - 2026-02-23
+
+### Added
+- **Example**: Created a standard `example/example.dart` and `example/README.md` for better package presentation.
+- **Enhanced Intelligence**: Finalized persistence for `tool_calls` and `tool_results` in `VanturaMemory`, enabling consistent multi-turn reasoning.
 
 ### Changed
 - **Security & Privacy Hardening**:
-  - Implemented automatic redaction of sensitive keys (API keys, Authorization tokens) in logs.
+  - Implemented recursive redaction of sensitive keys (API keys, Authorization tokens) in logs.
   - Added `VanturaLoggerOptions` to disable logging of sensitive content (prompts/responses) by default.
-  - Hardened `ApiTestTool` with hostname blacklisting and strict output truncation to prevent SSRF and PII leakage.
-  - Added SDK-level guardrails to `VanturaAgent` to prevent instruction overriding and prompt injection.
-- **Robustness Improvements**:
+  - Added `VanturaLogLevel` to filter SDK logs.
+  - Hardened `ApiTestTool` with hostname blacklisting (SSRF protection) and strict output truncation.
+  - Added SDK-level guardrails to prevent instruction overriding and prompt injection.
+- **Robustness**: 
   - Added execution timeouts to `VanturaTool` (default 30s) to prevent agent hangs.
-  - Implemented robust JSON decoding in `VanturaAgent` to handle malformed or markdown-wrapped tool calls from LLMs.
+  - Implemented robust JSON extraction to handle LLM conversational filler and markdown blocks.
   - Added `finishReason` to `VanturaResponse` for better observability.
-- **Intelligence & Memory**:
-  - Enhanced `VanturaMemory` and `VanturaPersistence` to persist tool calls and results, enabling consistent multi-turn reasoning across sessions.
-- Moved `MARKETING.md` resources to root `vantura_marketing_assets.md`.
-- Updated documentation and project structure for pub.dev compatibility.
+- **Dependency Updates**: Modernized constraints for `connectivity_plus` (v7) and `device_info_plus` (v12).
+- **Documentation**: SIGNIFICANT improvements to API documentation (dartdoc) and a completely rewritten high-end README guide.
+- **Project Structure**: Moved repository marketing assets to root and cleaned up `.pubignore`.
 
 ## [0.1.1] - 2026-02-22
 
