@@ -38,7 +38,12 @@ class VanturaMemory {
       final messages = await persistence!.loadMessages();
 
       for (var msg in messages) {
-        final chatMsg = {'role': msg['role'], 'content': msg['content']};
+        final chatMsg = {
+          'role': msg['role'],
+          'content': msg['content'],
+          if (msg['toolCalls'] != null) 'tool_calls': msg['toolCalls'],
+          if (msg['toolCallId'] != null) 'tool_call_id': msg['toolCallId'],
+        };
 
         if (msg['isSummary'] == 1 || msg['isSummary'] == true) {
           _longMemory.add(chatMsg);
@@ -109,8 +114,13 @@ class VanturaMemory {
     }
   }
 
-  Future<void> addMessage(String role, String content) async {
-    if (role.isEmpty || content.isEmpty) {
+  Future<void> addMessage(
+    String role,
+    String content, {
+    List<Map<String, dynamic>>? toolCalls,
+    String? toolCallId,
+  }) async {
+    if (role.isEmpty && (toolCalls == null || toolCalls.isEmpty)) {
       logger.warning(
         'Attempted to add invalid message to memory',
         tag: 'MEMORY',
@@ -119,18 +129,31 @@ class VanturaMemory {
       return;
     }
 
+    final message = {
+      'role': role,
+      'content': content.isEmpty ? null : content,
+      if (toolCalls != null) 'tool_calls': toolCalls,
+      if (toolCallId != null) 'tool_call_id': toolCallId,
+    };
+
     // Save to persistence if available
     if (persistence != null) {
-      await persistence!.saveMessage(role, content);
+      await persistence!.saveMessage(
+        role,
+        content,
+        toolCalls: toolCalls,
+        toolCallId: toolCallId,
+      );
     }
 
-    _shortMemory.add({'role': role, 'content': content});
+    _shortMemory.add(message);
     logger.debug(
       'Added message to short-term memory',
       tag: 'MEMORY',
       extra: {
         'role': role,
         'content_length': content.length,
+        'has_tools': toolCalls != null,
         'short_count': _shortMemory.length,
       },
     );

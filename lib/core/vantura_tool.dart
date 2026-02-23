@@ -17,6 +17,10 @@ abstract class VanturaTool<T> {
   /// Whether this tool requires human confirmation before execution.
   bool get requiresConfirmation => false;
 
+  /// Maximum time this tool is allowed to run before being cancelled.
+  /// Defaults to 30 seconds.
+  Duration get timeout => const Duration(seconds: 30);
+
   /// Parses the JSON arguments into the typed arguments object.
   ///
   /// This method is called by the agent to convert the raw JSON arguments

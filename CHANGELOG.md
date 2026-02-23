@@ -10,8 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.2] - 2026-02-23
 
 ### Changed
-- **Documentation Overhaul**: Significant overhaul of the README to provide a "master guide" implementation experience. Added detailed sections for SQLite persistence, Multi-Agent hand-offs, and UI state synchronization.
-- **Documentation Balance**: Balanced high-level marketing appeal with deep technical documentation (Custom Tools, Persistence, and Multi-Agent guides).
+- **Security & Privacy Hardening**:
+  - Implemented automatic redaction of sensitive keys (API keys, Authorization tokens) in logs.
+  - Added `VanturaLoggerOptions` to disable logging of sensitive content (prompts/responses) by default.
+  - Hardened `ApiTestTool` with hostname blacklisting and strict output truncation to prevent SSRF and PII leakage.
+  - Added SDK-level guardrails to `VanturaAgent` to prevent instruction overriding and prompt injection.
+- **Robustness Improvements**:
+  - Added execution timeouts to `VanturaTool` (default 30s) to prevent agent hangs.
+  - Implemented robust JSON decoding in `VanturaAgent` to handle malformed or markdown-wrapped tool calls from LLMs.
+  - Added `finishReason` to `VanturaResponse` for better observability.
+- **Intelligence & Memory**:
+  - Enhanced `VanturaMemory` and `VanturaPersistence` to persist tool calls and results, enabling consistent multi-turn reasoning across sessions.
+- Moved `MARKETING.md` resources to root `vantura_marketing_assets.md`.
+- Updated documentation and project structure for pub.dev compatibility.
 
 ## [0.1.1] - 2026-02-22
 

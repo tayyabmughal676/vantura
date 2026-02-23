@@ -7,6 +7,8 @@ abstract class VanturaPersistence {
     String role,
     String content, {
     bool isSummary = false,
+    List<Map<String, dynamic>>? toolCalls,
+    String? toolCallId,
   });
 
   /// Retrieves all saved messages from the persistent store.

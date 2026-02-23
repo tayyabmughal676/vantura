@@ -54,6 +54,12 @@ class _FakeVanturaClient_3 extends _i1.SmartFake implements _i4.VanturaClient {
     : super(parent, parentInvocation);
 }
 
+class _FakeVanturaLoggerOptions_4 extends _i1.SmartFake
+    implements _i3.VanturaLoggerOptions {
+  _FakeVanturaLoggerOptions_4(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [Client].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -280,9 +286,18 @@ class MockVanturaMemory extends _i1.Mock implements _i9.VanturaMemory {
           as _i5.Future<void>);
 
   @override
-  _i5.Future<void> addMessage(String? role, String? content) =>
+  _i5.Future<void> addMessage(
+    String? role,
+    String? content, {
+    List<Map<String, dynamic>>? toolCalls,
+    String? toolCallId,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#addMessage, [role, content]),
+            Invocation.method(
+              #addMessage,
+              [role, content],
+              {#toolCalls: toolCalls, #toolCallId: toolCallId},
+            ),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
@@ -414,6 +429,17 @@ class MockVanturaLogger extends _i1.Mock implements _i3.VanturaLogger {
   }
 
   @override
+  _i3.VanturaLoggerOptions get options =>
+      (super.noSuchMethod(
+            Invocation.getter(#options),
+            returnValue: _FakeVanturaLoggerOptions_4(
+              this,
+              Invocation.getter(#options),
+            ),
+          )
+          as _i3.VanturaLoggerOptions);
+
+  @override
   void debug(String? message, {String? tag, Map<String, dynamic>? extra}) =>
       super.noSuchMethod(
         Invocation.method(#debug, [message], {#tag: tag, #extra: extra}),
@@ -487,12 +513,18 @@ class MockVanturaPersistence extends _i1.Mock
     String? role,
     String? content, {
     bool? isSummary = false,
+    List<Map<String, dynamic>>? toolCalls,
+    String? toolCallId,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #saveMessage,
               [role, content],
-              {#isSummary: isSummary},
+              {
+                #isSummary: isSummary,
+                #toolCalls: toolCalls,
+                #toolCallId: toolCallId,
+              },
             ),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),

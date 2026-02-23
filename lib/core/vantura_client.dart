@@ -77,6 +77,7 @@ class VanturaClient {
         'model': model,
         'message_count': messages.length,
         'has_tools': tools != null && tools.isNotEmpty,
+        if (sdkLogger.options.logSensitiveContent) 'messages': messages,
       },
     );
 
@@ -85,10 +86,10 @@ class VanturaClient {
       'Authorization': 'Bearer $apiKey',
     };
 
-    final body = jsonEncode({
+    final bodyMap = {
       'model': model,
       'messages': messages,
-      'tools': ?tools,
+      'tools': tools,
       'tool_choice': 'auto',
       if ((temperature ?? this.temperature) != null)
         'temperature': temperature ?? this.temperature,
@@ -100,7 +101,9 @@ class VanturaClient {
       if ((reasoningEffort ?? this.reasoningEffort) != null)
         'reasoning_effort': reasoningEffort ?? this.reasoningEffort,
       if ((stop ?? this.stop) != null) 'stop': stop ?? this.stop,
-    });
+    };
+
+    final body = jsonEncode(bodyMap);
 
     const int maxRetries = 3;
     const Duration baseDelay = Duration(seconds: 1);
@@ -117,7 +120,12 @@ class VanturaClient {
         sdkLogger.info(
           'Sending API request (model: $model) attempt $attempt',
           tag: 'API',
-          extra: {'model': model, 'url': baseUrl, 'body_length': body.length},
+          extra: {
+            'model': model,
+            'url': baseUrl,
+            'body_length': body.length,
+            'headers': {...headers, 'Authorization': 'Bearer [REDACTED]'},
+          },
         );
 
         final response = await _httpClient.post(
@@ -141,8 +149,6 @@ class VanturaClient {
             final completionTokens = usage['completion_tokens'] ?? 0;
             final totalTokens = usage['total_tokens'] ?? 0;
 
-            // Simple cost estimation (example rates for Llama 3 70B on Groq - often free, but let's assume standard rates)
-            // Note: These should be updated based on the actual model
             final cost =
                 (promptTokens * 0.00059 / 1000) +
                 (completionTokens * 0.00079 / 1000);
@@ -157,6 +163,7 @@ class VanturaClient {
                   'total_tokens': totalTokens,
                   'estimated_cost_usd': cost.toStringAsFixed(6),
                 },
+                if (sdkLogger.options.logSensitiveContent) 'response': data,
               },
             );
           }
@@ -169,7 +176,7 @@ class VanturaClient {
           }
 
           final retryAfterContent = response.headers['retry-after'];
-          int retrySeconds = attempt * 2; // Default backoff
+          int retrySeconds = attempt * 2;
 
           if (retryAfterContent != null) {
             retrySeconds = int.tryParse(retryAfterContent) ?? retrySeconds;
@@ -178,7 +185,7 @@ class VanturaClient {
           sdkLogger.warning(
             'Rate limit hit (429). Retrying in ${retrySeconds}s... (Attempt $attempt/$maxRetries)',
             tag: 'API',
-            extra: {'response': response.body},
+            extra: {'response_redacted': '[REDACTED]'},
           );
 
           await Future.delayed(Duration(seconds: retrySeconds));
@@ -189,12 +196,11 @@ class VanturaClient {
             tag: 'API',
             extra: {
               'status_code': response.statusCode,
-              'response_body': response.body,
+              if (sdkLogger.options.logSensitiveContent)
+                'response_body': response.body,
             },
           );
-          throw Exception(
-            'Failed to get response: ${response.statusCode} ${response.body}',
-          );
+          throw Exception('Failed to get response: ${response.statusCode}');
         }
       } on http.ClientException catch (e) {
         if (attempt == maxRetries) {
@@ -217,26 +223,15 @@ class VanturaClient {
           tag: 'API',
           error: e,
           stackTrace: stackTrace,
-          extra: {
-            'model': model,
-            'duration_ms': 0, // since stopwatch not started if error before
-          },
         );
         rethrow;
       }
     }
 
-    // This should not be reached
     throw Exception('Unexpected error in API request');
   }
 
   /// Sends a streaming chat request to the API.
-  ///
-  /// [messages] should be a list of message maps with 'role' and 'content'.
-  /// [tools] is an optional list of tool definitions.
-  ///
-  /// Returns a Stream of response chunks. Note: This is a foundation for streaming
-  /// tool calls but requires further implementation to handle SSE and parse chunks.
   Stream<Map<String, dynamic>> sendStreamingChatRequest(
     List<Map<String, dynamic>> messages,
     List<Map<String, dynamic>>? tools, {
@@ -254,6 +249,7 @@ class VanturaClient {
         'model': model,
         'message_count': messages.length,
         'has_tools': tools != null && tools.isNotEmpty,
+        if (sdkLogger.options.logSensitiveContent) 'messages': messages,
       },
     );
 
@@ -265,7 +261,7 @@ class VanturaClient {
     final body = jsonEncode({
       'model': model,
       'messages': messages,
-      'tools': ?tools,
+      'tools': tools,
       'tool_choice': 'auto',
       'stream': true,
       'stream_options': {"include_usage": true},
@@ -285,13 +281,27 @@ class VanturaClient {
       request.headers.addAll(headers);
       request.body = body;
 
+      sdkLogger.debug(
+        'Opening API stream connection',
+        tag: 'API',
+        extra: {
+          'headers': {...headers, 'Authorization': 'Bearer [REDACTED]'},
+        },
+      );
+
       final response = await _httpClient.send(request);
 
       if (response.statusCode != 200) {
         final errorBody = await response.stream.bytesToString();
-        throw Exception(
-          'Streaming request failed: ${response.statusCode} $errorBody',
+        sdkLogger.error(
+          'Streaming requested failed',
+          tag: 'API',
+          extra: {
+            'status_code': response.statusCode,
+            if (sdkLogger.options.logSensitiveContent) 'error_body': errorBody,
+          },
         );
+        throw Exception('Streaming request failed: ${response.statusCode}');
       }
 
       yield* response.stream
@@ -306,12 +316,7 @@ class VanturaClient {
               try {
                 return jsonDecode(data) as Map<String, dynamic>;
               } catch (e) {
-                sdkLogger.error(
-                  'Error decoding SSE chunk',
-                  tag: 'API',
-                  error: e,
-                  extra: {'line': line},
-                );
+                sdkLogger.error('Error decoding SSE chunk', tag: 'API');
                 return null;
               }
             }
