@@ -15,7 +15,7 @@ topics:
 
 screenshots:
   - description: 'Vantura AI agent streaming a response in a Flutter chat UI'
-    path: screenshots/demo.png
+    path: screenshots/vantura-example.png
 
 environment:
   sdk: ^3.11.0

@@ -4,7 +4,9 @@
 
 Vantura is an **Agentic AI Framework** for building LLM-powered agents that **reason, think, and execute local tools** — all entirely on the client. Forget complex Python backends; Vantura gives your Flutter app an orchestrator that lives where your data lives.
 
-![Vantura Demo](screenshots/demo.png)
+## Screenshots
+
+<img src="./screenshots/vantura-example.png" alt="Vantura App Screenshot" width="400">
 
 [![Pub Version](https://img.shields.io/pub/v/vantura.svg)](https://pub.dev/packages/vantura)
 [![License: BSD-3](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
@@ -54,6 +56,8 @@ Here is how you implement a fully-functional agent with tools and streaming in o
 ```dart
 import 'package:vantura/core/index.dart';
 import 'package:vantura/tools/index.dart';
+import 'dart:async';
+import 'dart:io';
 
 void main() async {
   // 1. Initialize the Provider Client
@@ -141,6 +145,8 @@ Vantura uses a **Type-Safe Tool Framework**. You define the arguments as a class
 
 ### Example: Navigation Tool
 Give your agent the ability to navigate your app by creating a tool that interacts with your `Router`.
+
+```dart
 class NavArgs {
   final String route;
   NavArgs(this.route);
