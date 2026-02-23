@@ -1,14 +1,36 @@
+/// Log levels for Vantura SDK.
+enum VanturaLogLevel {
+  /// All logs, including internal step-by-step reasoning.
+  debug,
+
+  /// General operational information (default).
+  info,
+
+  /// Potential issues that don't stop execution.
+  warning,
+
+  /// Critical failures.
+  error,
+
+  /// No logs at all.
+  none,
+}
+
 /// Configuration for Vantura logging.
 class VanturaLoggerOptions {
   /// Whether to log the actual content of prompts and AI responses.
   /// Set to false to prevent logging PII in production.
   final bool logSensitiveContent;
 
+  /// Minimum level to log. Errors will always be logged unless level is 'none'.
+  final VanturaLogLevel logLevel;
+
   /// List of keys in 'extra' or 'context' maps that should be redacted.
   final List<String> redactedKeys;
 
   const VanturaLoggerOptions({
     this.logSensitiveContent = false,
+    this.logLevel = VanturaLogLevel.info,
     this.redactedKeys = const [
       'api_key',
       'apiKey',
@@ -84,11 +106,15 @@ class SimpleVanturaLogger implements VanturaLogger {
 
   void _printLog(
     String level,
+    VanturaLogLevel logLevel,
     String color,
     String message,
     String? tag,
     Map<String, dynamic>? extra,
   ) {
+    if (options.logLevel == VanturaLogLevel.none) return;
+    if (logLevel.index < options.logLevel.index) return;
+
     final redactedExtra = _redact(extra);
     final tagStr = tag != null ? ' [$tag]' : '';
     final extraStr = (redactedExtra != null && redactedExtra.isNotEmpty)
@@ -99,12 +125,12 @@ class SimpleVanturaLogger implements VanturaLogger {
 
   @override
   void debug(String message, {String? tag, Map<String, dynamic>? extra}) {
-    _printLog('DEBUG', _cyan, message, tag, extra);
+    _printLog('DEBUG', VanturaLogLevel.debug, _cyan, message, tag, extra);
   }
 
   @override
   void info(String message, {String? tag, Map<String, dynamic>? extra}) {
-    _printLog('INFO', _green, message, tag, extra);
+    _printLog('INFO', VanturaLogLevel.info, _green, message, tag, extra);
   }
 
   @override
@@ -114,8 +140,11 @@ class SimpleVanturaLogger implements VanturaLogger {
     Map<String, dynamic>? extra,
     Object? error,
   }) {
-    _printLog('WARNING', _yellow, message, tag, extra);
-    if (error != null) _print('$_yellow[WARNING ERROR] $error$_reset');
+    _printLog('WARNING', VanturaLogLevel.warning, _yellow, message, tag, extra);
+    if (options.logLevel != VanturaLogLevel.none &&
+        VanturaLogLevel.warning.index >= options.logLevel.index) {
+      if (error != null) _print('$_yellow[WARNING ERROR] $error$_reset');
+    }
   }
 
   @override
@@ -126,9 +155,12 @@ class SimpleVanturaLogger implements VanturaLogger {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    _printLog('ERROR', _red, message, tag, extra);
-    if (error != null) _print('$_red[ERROR] $error$_reset');
-    if (stackTrace != null) _print('$_red[STACK TRACE] $stackTrace$_reset');
+    _printLog('ERROR', VanturaLogLevel.error, _red, message, tag, extra);
+    if (options.logLevel != VanturaLogLevel.none &&
+        VanturaLogLevel.error.index >= options.logLevel.index) {
+      if (error != null) _print('$_red[ERROR] $error$_reset');
+      if (stackTrace != null) _print('$_red[STACK TRACE] $stackTrace$_reset');
+    }
   }
 
   @override
@@ -137,6 +169,10 @@ class SimpleVanturaLogger implements VanturaLogger {
     Duration duration, {
     Map<String, dynamic>? context,
   }) {
+    if (options.logLevel == VanturaLogLevel.none ||
+        VanturaLogLevel.info.index < options.logLevel.index)
+      return;
+
     final redactedContext = _redact(context);
     final contextStr = (redactedContext != null && redactedContext.isNotEmpty)
         ? ' | Context: $redactedContext'

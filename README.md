@@ -21,7 +21,9 @@ Vantura is an **Agentic AI Framework** for building LLM-powered agents that **re
 5. [State & UI Integration](#-state--ui-integration)
 6. [Multi-Agent Coordination](#-multi-agent-coordination)
 7. [Error Handling & Resilience](#-error-handling--resilience)
-8. [Architectural Comparison](#-architectural-comparison)
+8. [Security & Data Privacy](#-security--data-privacy)
+9. [Architectural Comparison](#-architectural-comparison)
+10. [Full Implementation Guide (Advanced)](#-full-implementation-guide-advanced)
 
 ---
 
@@ -227,6 +229,17 @@ final agent = VanturaAgent(
 
 ---
 
+## 🛡️ Security & Data Privacy
+
+Vantura is built for production environments where data privacy is paramount.
+
+- **Automatic Redaction**: Integrated logger automatically strips API keys, Authorization tokens, and sensitive fields from logs.
+- **Privacy-First Logging**: `logSensitiveContent` is disabled by default, ensuring user prompts and AI responses never touch your console logs in production.
+- **Anti-SSRF Guard**: Built-in tools like `ApiTestTool` feature hostname blacklisting to prevent internal network scanning.
+- **SDK Guardrails**: Injected system directives prevent the LLM from being "ordered" to ignore its original instructions (Anti-Jailbreak).
+
+---
+
 ## 📊 Architectural Comparison
 
 | Feature | OpenAI direct | LangChain (Backend) | **Vantura (Flutter)** |
@@ -239,10 +252,16 @@ final agent = VanturaAgent(
 
 ---
 
+## 🎓 Full Implementation Guide (Advanced)
+
+For a step-by-step roadmap from basic chatbot setup to advanced multi-agent systems and security hardening, please refer to the **[Implementation Guide (example.md)](example.md)**.
+
+---
+
 ## 📄 License
 Vantura is open-source and released under the **BSD 3-Clause License**.
 
 ---
 
-Built with ❤️ for the Flutter community by **DataDaur**. 
-For bug reports and feature requests, visit our [GitHub Repository](https://github.com/datadaur/vantura).
+Built with ❤️ for the Flutter community by **DataDaur AI Consulting**[https://datadaur.com]. 
+For bug reports and feature requests, visit our [GitHub Repository](https://github.com/tayyabmughal676/vantura).

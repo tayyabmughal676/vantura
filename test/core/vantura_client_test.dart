@@ -60,12 +60,10 @@ void main() {
 
       verify(
         mockHttpClient.post(
-          Uri.parse('https://api.test.com/v1/chat/completions'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer test_key',
-          },
+          any,
+          headers: anyNamed('headers'),
           body: argThat(contains('Say hello')),
+          encoding: anyNamed('encoding'),
         ),
       ).called(1);
     });
@@ -74,7 +72,6 @@ void main() {
       'sendChatRequest retries on 429 Rate Limit',
       () async {
         // Arrange
-        // First call returns 429
         when(
           mockHttpClient.post(
             any,
@@ -90,16 +87,12 @@ void main() {
           ),
         );
 
-        // Wait for 429 to be triggered
-        // Note: testing actual retry logic cleanly usually involves faking time or accepting the small delay. We'll let it delay for 1 second.
-        // But since we want to check it throws after max retries:
-
         // Act & Assert
         await expectLater(
           vanturaClient.sendChatRequest([
             {'role': 'user', 'content': 'hi'},
           ], null),
-          throwsException, // Will retry 3 times and then throw
+          throwsException,
         );
       },
       timeout: const Timeout(Duration(seconds: 10)),

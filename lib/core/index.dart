@@ -7,3 +7,4 @@ export 'vantura_persistence.dart';
 export 'vantura_state.dart';
 export 'vantura_tool.dart';
 export 'schema_helper.dart';
+export 'logger.dart';
