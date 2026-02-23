@@ -263,5 +263,5 @@ Vantura is open-source and released under the **BSD 3-Clause License**.
 
 ---
 
-Built with ❤️ for the Flutter community by **DataDaur AI Consulting**[https://datadaur.com]. 
+Built with ❤️ for the Flutter community by [**DataDaur AI Consulting**](https://datadaur.com). 
 For bug reports and feature requests, visit our [GitHub Repository](https://github.com/tayyabmughal676/vantura).

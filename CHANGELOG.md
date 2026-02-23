@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] - 2026-02-23
+
+### Changed
+- **Dependency Updates**: Modernized dependency constraints for `connectivity_plus` and `device_info_plus` to support latest major versions (7.0.0 and 12.0.0+), resolving pub.dev recommendations.
+- **Documentation**: Minor link fixes in README.
+
 ## [0.1.2] - 2026-02-23
 
 ### Changed
