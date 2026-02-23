@@ -1,3 +1,6 @@
+/// Logging infrastructure for the Vantura SDK, including redaction and filtering.
+library logger;
+
 /// Log levels for Vantura SDK.
 enum VanturaLogLevel {
   /// All logs, including internal step-by-step reasoning.
