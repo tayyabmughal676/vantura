@@ -48,7 +48,7 @@ This loop happens **on-device**, allowing the agent to call functions that exist
 Add `vantura` to your `pubspec.yaml`:
 ```yaml
 dependencies:
-  vantura: ^0.1.2
+  vantura: latest
 ```
 
 ### 2. Full Implementation Snippet
