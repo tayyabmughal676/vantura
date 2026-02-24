@@ -26,6 +26,7 @@ Vantura is an **Agentic AI Framework** for building LLM-powered agents that **re
 8. [Security & Data Privacy](#-security--data-privacy)
 9. [Architectural Comparison](#-architectural-comparison)
 10. [Full Implementation Guide (Advanced)](#-full-implementation-guide-advanced)
+11. [Examples](#-examples)
 
 ---
 
@@ -176,6 +177,114 @@ class NavigationTool extends VanturaTool<NavArgs> {
 }
 ```
 
+### Advanced Tool Features
+
+Vantura supports sophisticated tool implementations for complex applications.
+
+#### Confirmation Flows
+For sensitive operations like data updates or deletions, tools can require explicit user confirmation:
+
+```dart
+class UpdateClientTool extends VanturaTool<UpdateClientArgs> {
+  @override
+  bool get requiresConfirmation => true;
+
+  @override
+  Map<String, dynamic> get parameters => SchemaHelper.generateSchema({
+    'id': SchemaHelper.numberProperty(description: 'Client ID'),
+    'name': SchemaHelper.stringProperty(description: 'Updated name'),
+    'confirmed': SchemaHelper.booleanProperty(
+      description: 'Set to true ONLY after the user confirms the update.',
+    ),
+  }, required: ['id']);
+
+  @override
+  Future<String> execute(UpdateClientArgs args) async {
+    // Business logic here
+    return 'Client updated successfully';
+  }
+}
+```
+
+#### Complex Parameter Schemas
+Tools can handle arrays, enums, and nested objects for rich interactions:
+
+```dart
+class CreateInvoiceTool extends VanturaTool<CreateInvoiceArgs> {
+  @override
+  Map<String, dynamic> get parameters => SchemaHelper.generateSchema({
+    'clientId': SchemaHelper.numberProperty(description: 'Client ID'),
+    'status': SchemaHelper.stringProperty(
+      description: 'Invoice status',
+      enumValues: ['draft', 'sent', 'paid', 'overdue'],
+    ),
+    'items': {
+      'type': 'array',
+      'items': {
+        'type': 'object',
+        'properties': {
+          'description': {'type': 'string'},
+          'quantity': {'type': 'number'},
+          'unitPrice': {'type': 'number'},
+        },
+        'required': ['description', 'quantity', 'unitPrice'],
+      },
+    },
+  }, required: ['clientId', 'items']);
+}
+```
+
+#### Business Logic Integration
+Tools can execute complex workflows, such as cross-entity updates or analytics:
+
+```dart
+class UpdateInvoiceStatusTool extends VanturaTool<UpdateInvoiceStatusArgs> {
+  final InvoiceRepository invoiceRepository;
+  final InventoryRepository inventoryRepository;
+
+  UpdateInvoiceStatusTool(this.invoiceRepository, this.inventoryRepository);
+
+  @override
+  bool get requiresConfirmation => true;
+
+  @override
+  Map<String, dynamic> get parameters => SchemaHelper.generateSchema({
+    'invoiceId': SchemaHelper.numberProperty(description: 'Invoice ID'),
+    'status': SchemaHelper.stringProperty(
+      description: 'New status',
+      enumValues: ['draft', 'sent', 'paid'],
+    ),
+    'confirmed': SchemaHelper.booleanProperty(
+      description: 'Set to true ONLY after user confirms.',
+    ),
+  }, required: ['invoiceId', 'status']);
+
+  @override
+  Future<String> execute(UpdateInvoiceStatusArgs args) async {
+    final invoice = await invoiceRepository.getInvoice(args.invoiceId);
+    if (invoice == null) return 'Invoice not found';
+
+    // Update status
+    final newStatus = InvoiceStatus.values.firstWhere(
+      (e) => e.name == args.status,
+      orElse: () => invoice.status,
+    );
+
+    final updated = invoice.copyWith(status: newStatus);
+    await invoiceRepository.updateInvoice(updated);
+
+    // Business logic: decrement inventory on payment
+    if (newStatus == InvoiceStatus.paid && invoice.status != InvoiceStatus.paid) {
+      for (var item in invoice.items) {
+        await inventoryRepository.updateStock(item.description, -item.quantity.toInt());
+      }
+    }
+
+    return 'Invoice status updated to ${args.status}';
+  }
+}
+```
+
 ---
 
 ## 📱 State & UI Integration
@@ -261,6 +370,22 @@ Vantura is built for production environments where data privacy is paramount.
 ## 🎓 Full Implementation Guide (Advanced)
 
 For a step-by-step roadmap from basic chatbot setup to advanced multi-agent systems and security hardening, please refer to the **[Implementation Guide (example.md)](example.md)**.
+
+---
+
+## 📚 Examples
+
+For a complete Flutter app demonstrating Vantura, see the [example/](example/) folder. This business management suite showcases advanced capabilities including:
+
+- **Client Management**: CRUD operations for customer data with natural language queries
+- **Inventory Tracking**: Real-time stock management with low-stock alerts and automated updates
+- **Invoice Generation**: Complex invoicing with line items, tax calculations, and status workflows
+- **Financial Ledger**: Transaction recording and business analytics
+- **Confirmation Flows**: User approval for sensitive operations like updates and deletions
+- **Cross-Entity Workflows**: Automatic inventory adjustments when invoices are paid
+- **UI Integration**: Streaming responses and real-time state synchronization
+
+The example includes a full Clean Architecture implementation with SQLite persistence, Riverpod dependency injection, and responsive Flutter UI.
 
 ---
 

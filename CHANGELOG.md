@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] - 2026-02-24
+
+### Added
+- **Official Example App**: Complete Flutter business management app demonstrating client management, inventory tracking, invoicing, financial ledger, and analytics with advanced tool features.
+- **Advanced Tool Documentation**: Added sections for confirmation flows, complex parameter schemas (arrays, enums, nested objects), and business logic integration.
+- **Enhanced Examples Section**: Expanded README.md Examples section with detailed feature descriptions.
+
+### Changed
+- **Documentation Improvements**: Polished code examples, updated example repository URLs, and ensured consistency across all .md files.
+- **Package Description**: Extended pubspec.yaml description to meet pub.dev requirements.
+
+### Notes
+- Improved package presentation and developer experience with comprehensive examples and documentation.
+
 ## [0.1.2] - 2026-02-23
 
 ### Added
