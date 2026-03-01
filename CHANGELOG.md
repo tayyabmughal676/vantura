@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2026-02-28
+
+### Added
+- **Stable 1.0.0 Release**: First major stable, production-ready version of Vantura.
+- **Multi-Provider LLM Support**: Introduced `LlmClient` interface alongside fully native `AnthropicClient` (Claude 3.5/3.7+) and `GeminiClient` (Google Gemini 1.5/2.0+) wrappers, complementing the existing OpenAI-compatible `VanturaClient`.
+- **Agent Checkpointing**: Implemented `AgentStateCheckpoint` serialization, allowing `VanturaAgent` to seamlessly `resumeFrom()` interrupted ReAct loops via the `VanturaPersistence` layer.
+- **Conditional Confirmation**: Expanded tool logic with dynamic `requiresConfirmationFor(args)`, allowing agents to skip UI confirmation dialogs for low-risk actions automatically.
+- **Unified Main Library**: Created `lib/vantura.dart` as the primary standard entry point for the package.
+- **VanturaException Hierarchy**: Integrated standardized exception types (`VanturaToolException`, `VanturaCancellationException`, `VanturaIterationException`, etc.) for robust error handling.
+- **VanturaClient Transparency**: Added `onRetry` callback to clients for better observability during network retries.
+
+### Changed
+- **Hardened Reasoning Loop**: Refactored `VanturaAgent` ReAct loop with improved scoping, iteration control, and standardized failure state updates.
+- **Dependency Optimization**: Removed `google_fonts` from the core framework to drastically lighten the compiled application footprint.
+- **Documentation Coverage**: Achieved 100% dartdoc coverage for all core public classes and methods.
+- **Polished Examples**: Updated `example/example.dart` and the Orbit "Business Management" suite to showcase multi-provider instantiation and dynamic confirmation logic.
+- **Lint Optimization**: Resolved all static analysis issues and major pub.dev lint warnings.
+
 ## [0.1.3] - 2026-02-24
 
 ### Added

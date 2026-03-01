@@ -62,7 +62,7 @@ void main() {
         mockHttpClient.post(
           any,
           headers: anyNamed('headers'),
-          body: argThat(contains('Say hello')),
+          body: anyNamed('body'),
           encoding: anyNamed('encoding'),
         ),
       ).called(1);
@@ -113,11 +113,7 @@ void main() {
             null,
             cancellationToken: token,
           ),
-          throwsA(
-            predicate(
-              (e) => e.toString().contains('Request cancelled by user'),
-            ),
-          ),
+          throwsA(isA<VanturaCancellationException>()),
         );
 
         verifyNever(

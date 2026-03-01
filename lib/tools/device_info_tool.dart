@@ -7,9 +7,13 @@ class DeviceInfoArgs {
   DeviceInfoArgs();
 
   /// Creates DeviceInfoArgs from a JSON map.
-  factory DeviceInfoArgs.fromJson(Map<String, dynamic> json) => DeviceInfoArgs();
+  factory DeviceInfoArgs.fromJson(Map<String, dynamic> json) =>
+      DeviceInfoArgs();
 }
 
+/// A tool for retrieving basic device information.
+///
+/// Returns details about the platform, model, and system version.
 class DeviceInfoTool extends VanturaTool<DeviceInfoArgs> {
   @override
   String get name => 'device_info';
@@ -21,7 +25,8 @@ class DeviceInfoTool extends VanturaTool<DeviceInfoArgs> {
   Map<String, dynamic> get parameters => {};
 
   @override
-  DeviceInfoArgs parseArgs(Map<String, dynamic> json) => DeviceInfoArgs.fromJson(json);
+  DeviceInfoArgs parseArgs(Map<String, dynamic> json) =>
+      DeviceInfoArgs.fromJson(json);
 
   @override
   Future<String> execute(DeviceInfoArgs args) async {

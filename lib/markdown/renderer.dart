@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 import 'nodes.dart';
 
+/// A Flutter widget that renders [BlockNode]s into a rich text UI.
+///
+/// Supports custom styling for user vs. assistant messages.
 class MarkdownRenderer extends StatelessWidget {
+  /// The list of markdown blocks to render.
   final List<BlockNode> blocks;
+
+  /// Whether this content is from the user (affects styling).
   final bool isUser;
 
+  /// Creates a [MarkdownRenderer] for the given [blocks].
   const MarkdownRenderer(this.blocks, {this.isUser = false, super.key});
 
   @override
@@ -26,7 +33,8 @@ class MarkdownRenderer extends StatelessWidget {
           children: [
             Text(
               block.text,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: fontSize,
                 fontWeight: FontWeight.w700,
                 color: isUser ? Colors.white : Colors.blueAccent.shade100,
@@ -46,7 +54,10 @@ class MarkdownRenderer extends StatelessWidget {
                           Colors.white.withValues(alpha: 0.6),
                           Colors.white.withValues(alpha: 0),
                         ]
-                      : [Colors.blueAccent, Colors.blueAccent.withValues(alpha: 0)],
+                      : [
+                          Colors.blueAccent,
+                          Colors.blueAccent.withValues(alpha: 0),
+                        ],
                 ),
               ),
             ),
@@ -66,7 +77,8 @@ class MarkdownRenderer extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 4.0),
         child: Text.rich(
           _buildInline(context, block.inlines),
-          style: GoogleFonts.inter(
+          style: TextStyle(
+            fontFamily: 'Inter',
             color: isUser ? Colors.white : Colors.white.withValues(alpha: 0.9),
             height: 1.6,
             fontSize: 15,
@@ -98,7 +110,8 @@ class MarkdownRenderer extends StatelessWidget {
                       Expanded(
                         child: Text(
                           item,
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
+                            fontFamily: 'Inter',
                             color: isUser
                                 ? Colors.white
                                 : Colors.white.withValues(alpha: 0.9),
@@ -140,7 +153,9 @@ class MarkdownRenderer extends StatelessWidget {
             children: [_buildInline(context, inline.children)],
             style: TextStyle(
               fontStyle: FontStyle.italic,
-              color: isUser ? Colors.white.withValues(alpha: 0.8) : Colors.white70,
+              color: isUser
+                  ? Colors.white.withValues(alpha: 0.8)
+                  : Colors.white70,
             ),
           ),
         );
@@ -151,7 +166,9 @@ class MarkdownRenderer extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: isUser ? Colors.black26 : Colors.white.withValues(alpha: 0.08),
+                color: isUser
+                    ? Colors.black26
+                    : Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: isUser
@@ -161,7 +178,8 @@ class MarkdownRenderer extends StatelessWidget {
               ),
               child: Text(
                 inline.code,
-                style: GoogleFonts.jetBrainsMono(
+                style: TextStyle(
+                  fontFamily: 'JetBrains Mono',
                   fontSize: 13,
                   color: isUser ? Colors.white : Colors.blueAccent.shade100,
                   fontWeight: FontWeight.w600,

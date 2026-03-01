@@ -1,4 +1,3 @@
-
 import '../core/index.dart';
 
 /// Arguments for the CalculatorTool.
@@ -7,11 +6,7 @@ class CalculatorArgs {
   final num a;
   final num b;
 
-  CalculatorArgs({
-    required this.operation,
-    required this.a,
-    required this.b,
-  });
+  CalculatorArgs({required this.operation, required this.a, required this.b});
 
   /// Creates CalculatorArgs from a JSON map.
   factory CalculatorArgs.fromJson(Map<String, dynamic> json) {
@@ -23,6 +18,9 @@ class CalculatorArgs {
   }
 }
 
+/// A tool for performing basic arithmetic operations.
+///
+/// Supports addition, subtraction, multiplication, and division.
 class CalculatorTool extends VanturaTool<CalculatorArgs> {
   @override
   String get name => 'calculator';
@@ -36,16 +34,13 @@ class CalculatorTool extends VanturaTool<CalculatorArgs> {
       description: 'The arithmetic operation to perform',
       enumValues: ['add', 'subtract', 'multiply', 'divide'],
     ),
-    'a': SchemaHelper.numberProperty(
-      description: 'First number',
-    ),
-    'b': SchemaHelper.numberProperty(
-      description: 'Second number',
-    ),
+    'a': SchemaHelper.numberProperty(description: 'First number'),
+    'b': SchemaHelper.numberProperty(description: 'Second number'),
   });
 
   @override
-  CalculatorArgs parseArgs(Map<String, dynamic> json) => CalculatorArgs.fromJson(json);
+  CalculatorArgs parseArgs(Map<String, dynamic> json) =>
+      CalculatorArgs.fromJson(json);
 
   @override
   Future<String> execute(CalculatorArgs args) async {

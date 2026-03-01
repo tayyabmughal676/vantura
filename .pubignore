@@ -19,5 +19,11 @@ Thumbs.db
 # Private documentation and metadata
 docs/
 review-report.md
+vantura-page.md
+report-matter.md
+checklist-pub.md
 test_results.txt
 *.log
+.env*
+*.local
+scripts/

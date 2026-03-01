@@ -6,9 +6,13 @@ class NetworkConnectivityArgs {
   NetworkConnectivityArgs();
 
   /// Creates NetworkConnectivityArgs from a JSON map.
-  factory NetworkConnectivityArgs.fromJson(Map<String, dynamic> json) => NetworkConnectivityArgs();
+  factory NetworkConnectivityArgs.fromJson(Map<String, dynamic> json) =>
+      NetworkConnectivityArgs();
 }
 
+/// A tool for checking the device's current network connectivity status.
+///
+/// Uses the `connectivity_plus` package to detect WiFi, Mobile, or no connection.
 class NetworkConnectivityTool extends VanturaTool<NetworkConnectivityArgs> {
   @override
   String get name => 'network_connectivity';
@@ -20,7 +24,8 @@ class NetworkConnectivityTool extends VanturaTool<NetworkConnectivityArgs> {
   Map<String, dynamic> get parameters => {};
 
   @override
-  NetworkConnectivityArgs parseArgs(Map<String, dynamic> json) => NetworkConnectivityArgs.fromJson(json);
+  NetworkConnectivityArgs parseArgs(Map<String, dynamic> json) =>
+      NetworkConnectivityArgs.fromJson(json);
 
   @override
   Future<String> execute(NetworkConnectivityArgs args) async {

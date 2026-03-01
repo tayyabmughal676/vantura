@@ -39,6 +39,7 @@ class AgentCoordinator {
   }
 
   /// Triggers a handoff to the [targetAgentName].
+  ///
   /// The transfer will take effect on the NEXT run or iteration.
   void triggerHandoff(String targetAgentName) {
     if (agents.containsKey(targetAgentName)) {
@@ -46,7 +47,7 @@ class AgentCoordinator {
     }
   }
 
-  /// Runs the overall system, routing through agents as needed.
+  /// Runs the current active agent. Hand-off checks are performed after completion.
   Future<VanturaResponse> run(
     String prompt, {
     CancellationToken? cancellationToken,
@@ -71,7 +72,7 @@ class AgentCoordinator {
     return response;
   }
 
-  /// Streams the overall system execution.
+  /// Streams the current active agent. Hand-off checks are performed after completion.
   Stream<VanturaResponse> runStreaming(
     String prompt, {
     CancellationToken? cancellationToken,

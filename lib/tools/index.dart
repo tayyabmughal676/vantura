@@ -10,6 +10,8 @@ export 'device_info_tool.dart';
 export 'api_test_tool.dart';
 
 /// Returns a list of all standard tools available in the SDK.
+///
+/// Includes [CalculatorTool], [NetworkConnectivityTool], [DeviceInfoTool], and [ApiTestTool].
 List<VanturaTool> getStandardTools() {
   return [
     CalculatorTool(),

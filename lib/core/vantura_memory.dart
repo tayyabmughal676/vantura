@@ -1,26 +1,35 @@
 import 'dart:collection';
 import 'logger.dart';
-import 'vantura_client.dart';
+import 'llm_client.dart';
 import 'vantura_persistence.dart';
 
+/// Manages agent memory including short-term history and long-term summarization.
+///
+/// Handles message lifecycle, persistence integration, and context compression.
 class VanturaMemory {
   final Queue<Map<String, dynamic>> _shortMemory =
       Queue<Map<String, dynamic>>();
   final List<Map<String, dynamic>> _longMemory = [];
 
+  /// Cached combined list of messages to reduce allocation pressure.
+  List<Map<String, dynamic>>? _cachedMessages;
+
+  /// Maximum number of messages to keep in short-term memory before summarizing.
   final int shortLimit;
+
+  /// Maximum number of summaries to keep in long-term memory.
   final int longLimit;
 
-  /// Logger instance for logging operations.
+  /// Logger instance for memory operations.
   final VanturaLogger logger;
 
-  /// Client for AI communication, used for summarization.
-  final VanturaClient client;
+  /// Client used for generating conversation summaries.
+  final LlmClient client;
 
-  /// Persistence provider for conversation history.
+  /// Optional persistence provider for cross-session memory.
   final VanturaPersistence? persistence;
 
-  /// Creates an VanturaMemory with the specified logger and client.
+  /// Creates a [VanturaMemory] with summarization and persistence capabilities.
   VanturaMemory(
     this.logger,
     this.client, {
@@ -51,6 +60,8 @@ class VanturaMemory {
           _shortMemory.add(chatMsg);
         }
       }
+
+      _cachedMessages = null; // Invalidate cache after loading
 
       logger.info(
         'Chat history loaded',
@@ -114,6 +125,9 @@ class VanturaMemory {
     }
   }
 
+  /// Adds a new message to short-term memory and optionally persists it.
+  ///
+  /// Transferred tool calls from [VanturaAgent] should be passed here via [toolCalls].
   Future<void> addMessage(
     String role,
     String content, {
@@ -147,6 +161,7 @@ class VanturaMemory {
     }
 
     _shortMemory.add(message);
+    _cachedMessages = null; // Invalidate cache
     logger.debug(
       'Added message to short-term memory',
       tag: 'MEMORY',
@@ -185,6 +200,7 @@ class VanturaMemory {
 
       _longMemory.add(summaryMsg);
       _shortMemory.clear();
+      _cachedMessages = null; // Invalidate cache
       logger.info(
         'Added summary to long-term memory',
         tag: 'MEMORY',
@@ -197,6 +213,7 @@ class VanturaMemory {
       // Prune long memory if needed
       if (_longMemory.length > longLimit) {
         final removed = _longMemory.removeAt(0);
+        _cachedMessages = null; // Invalidate cache
         logger.info(
           'Pruned oldest long-term memory entry',
           tag: 'MEMORY',
@@ -209,23 +226,32 @@ class VanturaMemory {
     }
   }
 
+  /// Returns the combination of long-term summaries and current short-term history.
   List<Map<String, dynamic>> getMessages() {
-    final messages = _longMemory + _shortMemory.toList();
+    if (_cachedMessages != null) {
+      return _cachedMessages!;
+    }
+
+    _cachedMessages = List<Map<String, dynamic>>.from(_longMemory)
+      ..addAll(_shortMemory);
+
     logger.debug(
-      'Retrieving messages from memory',
+      'Retrieving messages from memory (rebuilt cache)',
       tag: 'MEMORY',
       extra: {
-        'count': messages.length,
+        'count': _cachedMessages!.length,
         'long_count': _longMemory.length,
         'short_count': _shortMemory.length,
       },
     );
-    return messages;
+    return _cachedMessages!;
   }
 
+  /// Wipes all memory and clears associated persistence storage.
   void clear() {
     _shortMemory.clear();
     _longMemory.clear();
+    _cachedMessages = null;
     persistence?.clearMessages();
     logger.info('Cleared all memory', tag: 'MEMORY');
   }

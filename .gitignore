@@ -131,6 +131,9 @@ Temporary\ Items
 
 # Local configuration
 *.local
+*.bak
+*.swp
+*~
 
 # Secrets and credentials
 **/google-services.json
@@ -145,8 +148,29 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Mac trash
-.Trashes
+# Test and coverage artifacts
+coverage/
+test_output.txt
+*.lcov
+test_report.json
 
-# Generated Reports
-review_report.md
+# Tooling and caching
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub/
+.pub-cache/
+
+# Documentations
+doc/api/
+
+# Internal Planning & Proposals (Not for public repo)
+docs/
+todo.md
+future-todo.md
+review-report.md
+report-matter.md
+checklist-pub.md
+technical-architectural-report.md
+vantura-security-performance-audit.md

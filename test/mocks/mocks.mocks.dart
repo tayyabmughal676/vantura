@@ -6,17 +6,17 @@
 import 'dart:async' as _i5;
 import 'dart:convert' as _i6;
 import 'dart:typed_data' as _i8;
-import 'dart:ui' as _i11;
+import 'dart:ui' as _i10;
 
 import 'package:http/http.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i7;
+import 'package:vantura/core/agent_state_checkpoint.dart' as _i12;
 import 'package:vantura/core/cancellation_token.dart' as _i13;
+import 'package:vantura/core/index.dart' as _i9;
+import 'package:vantura/core/llm_client.dart' as _i4;
 import 'package:vantura/core/logger.dart' as _i3;
-import 'package:vantura/core/vantura_client.dart' as _i4;
-import 'package:vantura/core/vantura_memory.dart' as _i9;
-import 'package:vantura/core/vantura_persistence.dart' as _i12;
-import 'package:vantura/core/vantura_state.dart' as _i10;
+import 'package:vantura/core/vantura_persistence.dart' as _i11;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -49,8 +49,8 @@ class _FakeVanturaLogger_2 extends _i1.SmartFake implements _i3.VanturaLogger {
     : super(parent, parentInvocation);
 }
 
-class _FakeVanturaClient_3 extends _i1.SmartFake implements _i4.VanturaClient {
-  _FakeVanturaClient_3(Object parent, Invocation parentInvocation)
+class _FakeLlmClient_3 extends _i1.SmartFake implements _i4.LlmClient {
+  _FakeLlmClient_3(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -269,12 +269,12 @@ class MockVanturaMemory extends _i1.Mock implements _i9.VanturaMemory {
           as _i3.VanturaLogger);
 
   @override
-  _i4.VanturaClient get client =>
+  _i4.LlmClient get client =>
       (super.noSuchMethod(
             Invocation.getter(#client),
-            returnValue: _FakeVanturaClient_3(this, Invocation.getter(#client)),
+            returnValue: _FakeLlmClient_3(this, Invocation.getter(#client)),
           )
-          as _i4.VanturaClient);
+          as _i4.LlmClient);
 
   @override
   _i5.Future<void> init() =>
@@ -321,7 +321,7 @@ class MockVanturaMemory extends _i1.Mock implements _i9.VanturaMemory {
 /// A class which mocks [VanturaState].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockVanturaState extends _i1.Mock implements _i10.VanturaState {
+class MockVanturaState extends _i1.Mock implements _i9.VanturaState {
   MockVanturaState() {
     _i1.throwOnMissingStub(this);
   }
@@ -396,13 +396,13 @@ class MockVanturaState extends _i1.Mock implements _i10.VanturaState {
   );
 
   @override
-  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -503,7 +503,7 @@ class MockVanturaLogger extends _i1.Mock implements _i3.VanturaLogger {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockVanturaPersistence extends _i1.Mock
-    implements _i12.VanturaPersistence {
+    implements _i11.VanturaPersistence {
   MockVanturaPersistence() {
     _i1.throwOnMissingStub(this);
   }
@@ -558,12 +558,38 @@ class MockVanturaPersistence extends _i1.Mock
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> saveCheckpoint(_i12.AgentStateCheckpoint? checkpoint) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveCheckpoint, [checkpoint]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i12.AgentStateCheckpoint?> loadCheckpoint() =>
+      (super.noSuchMethod(
+            Invocation.method(#loadCheckpoint, []),
+            returnValue: _i5.Future<_i12.AgentStateCheckpoint?>.value(),
+          )
+          as _i5.Future<_i12.AgentStateCheckpoint?>);
+
+  @override
+  _i5.Future<void> clearCheckpoint() =>
+      (super.noSuchMethod(
+            Invocation.method(#clearCheckpoint, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 }
 
 /// A class which mocks [VanturaClient].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockVanturaClient extends _i1.Mock implements _i4.VanturaClient {
+class MockVanturaClient extends _i1.Mock implements _i9.VanturaClient {
   MockVanturaClient() {
     _i1.throwOnMissingStub(this);
   }

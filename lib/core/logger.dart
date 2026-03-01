@@ -55,7 +55,7 @@ abstract class VanturaLogger {
   /// Log an info message.
   void info(String message, {String? tag, Map<String, dynamic>? extra});
 
-  /// Log a warning message.
+  /// Log a warning message for potentially recoverable issues.
   void warning(
     String message, {
     String? tag,
@@ -63,7 +63,7 @@ abstract class VanturaLogger {
     Object? error,
   });
 
-  /// Log an error message.
+  /// Log a critical error that might prevent further execution.
   void error(
     String message, {
     String? tag,
@@ -72,7 +72,7 @@ abstract class VanturaLogger {
     StackTrace? stackTrace,
   });
 
-  /// Log performance metrics.
+  /// Records the duration and context of a specific operation for profiling.
   void logPerformance(
     String operation,
     Duration duration, {
@@ -115,8 +115,12 @@ class SimpleVanturaLogger implements VanturaLogger {
     String? tag,
     Map<String, dynamic>? extra,
   ) {
-    if (options.logLevel == VanturaLogLevel.none) return;
-    if (logLevel.index < options.logLevel.index) return;
+    if (options.logLevel == VanturaLogLevel.none) {
+      return;
+    }
+    if (logLevel.index < options.logLevel.index) {
+      return;
+    }
 
     final redactedExtra = _redact(extra);
     final tagStr = tag != null ? ' [$tag]' : '';
@@ -146,7 +150,9 @@ class SimpleVanturaLogger implements VanturaLogger {
     _printLog('WARNING', VanturaLogLevel.warning, _yellow, message, tag, extra);
     if (options.logLevel != VanturaLogLevel.none &&
         VanturaLogLevel.warning.index >= options.logLevel.index) {
-      if (error != null) _print('$_yellow[WARNING ERROR] $error$_reset');
+      if (error != null) {
+        _print('$_yellow[WARNING ERROR] $error$_reset');
+      }
     }
   }
 
@@ -161,8 +167,12 @@ class SimpleVanturaLogger implements VanturaLogger {
     _printLog('ERROR', VanturaLogLevel.error, _red, message, tag, extra);
     if (options.logLevel != VanturaLogLevel.none &&
         VanturaLogLevel.error.index >= options.logLevel.index) {
-      if (error != null) _print('$_red[ERROR] $error$_reset');
-      if (stackTrace != null) _print('$_red[STACK TRACE] $stackTrace$_reset');
+      if (error != null) {
+        _print('$_red[ERROR] $error$_reset');
+      }
+      if (stackTrace != null) {
+        _print('$_red[STACK TRACE] $stackTrace$_reset');
+      }
     }
   }
 
@@ -173,8 +183,9 @@ class SimpleVanturaLogger implements VanturaLogger {
     Map<String, dynamic>? context,
   }) {
     if (options.logLevel == VanturaLogLevel.none ||
-        VanturaLogLevel.info.index < options.logLevel.index)
+        VanturaLogLevel.info.index < options.logLevel.index) {
       return;
+    }
 
     final redactedContext = _redact(context);
     final contextStr = (redactedContext != null && redactedContext.isNotEmpty)

@@ -10,19 +10,33 @@ Welcome to the official Vantura implementation guide. This document provides a s
 3. [Phase 3: Adding Long-Term Memory](#phase-3-adding-long-term-memory)
 4. [Phase 4: Advanced Streaming & UI State](#phase-4-advanced-streaming--ui-state)
 5. [Phase 5: Multi-Agent Coordination (Handoffs)](#phase-5-multi-agent-coordination-handoffs)
-6. [Phase 6: Security & Production Hardening](#phase-6-security--production-hardening)
+6. [Phase 6: Agent Checkpointing (Resiliency)](#phase-6-agent-checkpointing-resiliency)
+7. [Phase 7: Security & Production Hardening](#phase-7-security--production-hardening)
 
 ---
 
-## Phase 1: The Basic Chatbot
-In this phase, we set up a minimal agent that can process text through an OpenAI-compatible API (like Groq, OpenAI, or Ollama).
+## Phase 1: The Multi-Provider Chatbot
+Vantura supports multiple LLM providers natively. You can switch between them by simply changing the `LlmClient` implementation.
 
-### 1. Initialize the Client
+### 1. Initialize your preferred Client
 ```dart
+// Option A: OpenAI-compatible (Groq, Together, Ollama)
 final client = VanturaClient(
   apiKey: 'your_api_key',
   baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
-  model: 'llama-3.1-70b-versatile',
+  model: 'llama-3.3-70b-versatile',
+);
+
+// Option B: Native Anthropic (Claude)
+final anthropic = AnthropicClient(
+  apiKey: 'your_anthropic_key',
+  model: 'claude-3-5-sonnet-latest',
+);
+
+// Option C: Native Google Gemini
+final gemini = GeminiClient(
+  apiKey: 'your_gemini_key',
+  model: 'gemini-1.5-pro-latest',
 );
 ```
 
@@ -31,7 +45,7 @@ final client = VanturaClient(
 final agent = VanturaAgent(
   name: 'Assistant',
   instructions: 'You are a helpful assistant.',
-  client: client,
+  client: client, // Pass any of the client implementations above
   memory: VanturaMemory(sdkLogger, client), // Default in-memory
   state: VanturaState(),
   tools: [], // No tools yet
@@ -181,7 +195,30 @@ await coordinator.run('I need help with my last payment');
 
 ---
 
-## Phase 6: Security & Production Hardening
+## Phase 6: Agent Checkpointing (Resiliency)
+Long-running agent loops can be interrupted by app termination or backgrounding. Vantura's checkpointing system allows you to save and resume the exact state of a reasoning cycle.
+
+### 1. Enable Persistence
+Checkpointing requires a `VanturaPersistence` implementation (see Phase 3). Vantura will automatically save the agent's state to this layer between tool executions.
+
+### 2. Resume an Interrupted Loop
+```dart
+Future<void> resumeAgent() async {
+  // Load the last known checkpoint from the database
+  final checkpoint = await persistence.loadCheckpoint();
+  
+  if (checkpoint != null && checkpoint.isRunning) {
+    // Resume the session exactly where it left off
+    await for (final response in agent.resume(resumeFrom: checkpoint)) {
+      print(chunk.textChunk);
+    }
+  }
+}
+```
+
+---
+
+## Phase 7: Security & Production Hardening
 Before publishing your app, ensure it is secure.
 
 ### 1. Redact Sensitive Data in Logs

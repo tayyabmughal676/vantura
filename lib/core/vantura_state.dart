@@ -16,6 +16,7 @@ class VanturaState extends ChangeNotifier {
   String? errorMessage;
 
   /// Start a new agent run.
+  /// Initializes the state for a new agent interaction.
   void startRun() {
     isRunning = true;
     currentStep = 'Initializing agent run...';
@@ -25,6 +26,7 @@ class VanturaState extends ChangeNotifier {
   }
 
   /// Update the current step.
+  /// Updates the current descriptive step (e.g., 'Executing tool...').
   void updateStep(String step) {
     currentStep = step;
     sdkLogger.debug('State step updated: $step', tag: 'STATE');
@@ -32,6 +34,7 @@ class VanturaState extends ChangeNotifier {
   }
 
   /// Mark the run as completed successfully.
+  /// Finalizes the state following a successful run.
   void completeRun() {
     isRunning = false;
     currentStep = 'Run completed';
@@ -40,6 +43,7 @@ class VanturaState extends ChangeNotifier {
   }
 
   /// Mark the run as failed with an error.
+  /// Records a failure and preserves the error message for display.
   void failRun(String error) {
     isRunning = false;
     errorMessage = error;

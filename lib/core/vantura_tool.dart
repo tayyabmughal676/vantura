@@ -14,8 +14,15 @@ abstract class VanturaTool<T> {
   /// JSON Schema describing the parameters this tool accepts.
   Map<String, dynamic> get parameters;
 
-  /// Whether this tool requires human confirmation before execution.
+  /// Whether this tool normally requires human confirmation before execution.
+  /// If you need dynamic confirmation logic based on the arguments, override
+  /// [requiresConfirmationFor] instead.
   bool get requiresConfirmation => false;
+
+  /// Dynamic evaluation of whether this specific execution requires confirmation.
+  /// By default, this simply returns [requiresConfirmation]. Override this to
+  /// skip confirmation for low-risk operations (e.g., deleting a trivial resource).
+  bool requiresConfirmationFor(T args) => requiresConfirmation;
 
   /// Maximum time this tool is allowed to run before being cancelled.
   /// Defaults to 30 seconds.

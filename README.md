@@ -1,8 +1,8 @@
 # 🚀 Vantura
 
-### The Agentic AI Framework for Flutter. Build "Brains" directly in your app.
+### The Stateful Agentic AI Framework for Flutter. Build "Brains" directly in your app.
 
-Vantura is an **Agentic AI Framework** for building LLM-powered agents that **reason, think, and execute local tools** — all entirely on the client. Forget complex Python backends; Vantura gives your Flutter app an orchestrator that lives where your data lives.
+Vantura is a **Stateful Agentic AI Framework** for building LLM-powered agents that **reason, think, maintain state, and execute local tools** — all entirely on the client. Forget complex Python backends; Vantura gives your Flutter app an intelligent, context-aware orchestrator that lives where your data lives.
 
 ## Screenshots
 
@@ -15,18 +15,37 @@ Vantura is an **Agentic AI Framework** for building LLM-powered agents that **re
 
 ---
 
-## 📖 Table of Contents
-1. [Core Concepts](#-core-concepts)
-2. [Getting Started (One-Go Guide)](#-getting-started-one-go-guide)
-3. [The Memory System & Persistence](#-the-memory-system--persistence)
-4. [Custom Tools & JSON Schema](#-custom-tools--json-schema)
-5. [State & UI Integration](#-state--ui-integration)
-6. [Multi-Agent Coordination](#-multi-agent-coordination)
-7. [Error Handling & Resilience](#-error-handling--resilience)
-8. [Security & Data Privacy](#-security--data-privacy)
-9. [Architectural Comparison](#-architectural-comparison)
-10. [Full Implementation Guide (Advanced)](#-full-implementation-guide-advanced)
-11. [Examples](#-examples)
+## ✨ Key Features
+
+| Feature | Description |
+|---|---|
+| 🧠 **On-Device ReAct Loop** | Orchestration runs locally in Dart, minimizing latency and letting the agent interact directly with Flutter APIs. |
+| 🛠️ **Type-Safe Tools** | Define custom tools using strongly-typed Dart classes with automatic JSON Schema generation for the LLM. |
+| 🤖 **Multi-Provider Support** | Seamlessly swap between OpenAI-compatible backends (Groq, TogetherAI, local Ollama), Anthropic Claude, and Google Gemini via a unified `LlmClient` interface. |
+| 💾 **Dual-Layer Memory** | Short-term sliding window context mixed with automatic, LLM-powered long-term conversation summarization. |
+| ⏸️ **Agent Checkpointing** | Persist and resume interrupted reasoning cycles (ReAct loops) to recover from app backgrounding or terminations. |
+| 🤝 **Multi-Agent Coordination** | Easily delegate specialized tasks across multiple agents using the built-in `AgentCoordinator`. |
+| 🛡️ **Dynamic Confirmation** | Request human-in-the-loop permission `requiresConfirmation` for sensitive actions, skipping dynamically for low-risk actions. |
+| 🔒 **Privacy-First Security** | Built-in redaction logging, automatic PII protection tools, and local execution keep your data from leaking into middleware logs. |
+| � **State Sync UI** | `ChangeNotifier` and reactive state models expose the current "thought" step and token streams straight to your Flutter UI. |
+
+---
+
+## �📖 Table of Contents
+1. [Key Features](#-key-features)
+2. [Core Concepts](#core-concepts)
+3. [Getting Started (One-Go Guide)](#getting-started-one-go-guide)
+4. [Multi-Provider LLMs](#multi-provider-llms)
+5. [The Memory System & Persistence](#the-memory-system--persistence)
+6. [Agent Checkpointing](#agent-checkpointing)
+7. [Custom Tools & JSON Schema](#custom-tools--json-schema)
+8. [State & UI Integration](#state--ui-integration)
+9. [Multi-Agent Coordination](#multi-agent-coordination)
+10. [Error Handling & Resilience](#error-handling--resilience)
+11. [Security & Data Privacy](#security--data-privacy)
+12. [Architectural Comparison](#architectural-comparison)
+13. [Full Implementation Guide (Advanced)](#full-implementation-guide-advanced)
+14. [Examples](#examples)
 
 ---
 
@@ -48,23 +67,22 @@ This loop happens **on-device**, allowing the agent to call functions that exist
 Add `vantura` to your `pubspec.yaml`:
 ```yaml
 dependencies:
-  vantura: latest
+  vantura: ^1.0.0
 ```
 
 ### 2. Full Implementation Snippet
 Here is how you implement a fully-functional agent with tools and streaming in one go:
 
 ```dart
-import 'package:vantura/core/index.dart';
-import 'package:vantura/tools/index.dart';
+import 'package:vantura/vantura.dart';
 import 'dart:async';
 import 'dart:io';
 
 void main() async {
-  // 1. Initialize the Provider Client
-  final client = VanturaClient(
+  // 1. Initialize the Provider Client (Supports OpenAI, Anthropic, Gemini, etc.)
+  final LlmClient client = VanturaClient(
     apiKey: 'YOUR_API_KEY',
-    baseUrl: 'https://api.groq.com/openai/v1/chat/completions', // Or OpenAI/Ollama
+    baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
     model: 'llama-3.3-70b-versatile',
   );
 
@@ -101,6 +119,24 @@ void main() async {
 
 ---
 
+## 🤖 Multi-Provider LLMs
+
+Vantura abstracts all communication through the unified `LlmClient` interface. You are not locked into a single provider or standard. 
+
+Out-of-the-box, Vantura ships with three deeply integrated clients:
+1. **`VanturaClient`**: The standard REST wrapper for any OpenAI-compatible API (Groq, TogetherAI, OpenAI, local Ollama).
+2. **`AnthropicClient`**: Fully native wrapper for Anthropic's Claude 3.5/3.7+ Messages API format.
+3. **`GeminiClient`**: Fully native wrapper for Google's Gemini 1.5/2.0+ REST endpoints with structured tool injection.
+
+```dart
+// Hot-swap providers without changing your Agent logic:
+final LlmClient openai = VanturaClient(apiKey: 'sk-...', model: 'gpt-4o');
+final LlmClient claude = AnthropicClient(apiKey: 'sk-ant-...', model: 'claude-3-7-sonnet-latest');
+final LlmClient gemini = GeminiClient(apiKey: 'AIza...', model: 'gemini-1.5-flash-latest');
+```
+
+---
+
 ## 💾 The Memory System & Persistence
 
 Vantura features a **Dual-Layer Memory**:
@@ -124,18 +160,36 @@ class SQLitePersistence implements VanturaPersistence {
     return await db.query('messages', orderBy: 'id ASC');
   }
 
-  @override
-  Future<void> clearMessages() async => await db.delete('messages');
-
-  @override
-  Future<void> deleteOldMessages(int limit) async {
-    // Logic to prune oldest messages
-  }
+  // ... implement clearMessages(), deleteOldMessages(), and checkpointing hooks
 }
 
 // Inject it:
 final memory = VanturaMemory(sdkLogger, client, persistence: SQLitePersistence(myDb));
 await memory.init(); // Loads history into memory
+```
+
+---
+
+## ⏸️ Agent Checkpointing
+
+Agent reasoning cycles (ReAct loops) can sometimes take several seconds. If a user backgrounds or kills the app mid-generation, progress is lost. Vantura's checkpointing system automatically serializes the agent's exact loop state `_saveCurrentState()` between tool executions. 
+
+When your app restarts, you can seamlessly resume the loop right where it left off:
+
+```dart
+class MyService {
+  Future<void> resumeLastSession() async {
+    // 1. Load the interrupted state from your persistence layer
+    final AgentStateCheckpoint? checkpoint = await memory.persistence?.loadCheckpoint();
+    
+    if (checkpoint != null && checkpoint.isRunning) {
+      // 2. Resume the agent with the loaded checkpoint
+      await for (final response in agent.resume(resumeFrom: checkpoint)) {
+        print(response.textChunk);
+      }
+    }
+  }
+}
 ```
 
 ---
@@ -162,7 +216,7 @@ class NavigationTool extends VanturaTool<NavArgs> {
   Map<String, dynamic> get parameters => SchemaHelper.generateSchema({
     'route': SchemaHelper.stringProperty(
         description: 'Target route (e.g. /settings, /profile)',
-        enumOptions: ['/settings', '/profile', '/home'],
+        enumValues: ['/settings', '/profile', '/home'],
     ),
   });
 
@@ -181,27 +235,57 @@ class NavigationTool extends VanturaTool<NavArgs> {
 
 Vantura supports sophisticated tool implementations for complex applications.
 
-#### Confirmation Flows
-For sensitive operations like data updates or deletions, tools can require explicit user confirmation:
+#### Conditional Confirmations & Business Logic Integration
+Tools can dynamically request explicit user confirmation based on the requested action, and execute complex workflows like cross-entity updates:
 
 ```dart
-class UpdateClientTool extends VanturaTool<UpdateClientArgs> {
+class UpdateInvoiceStatusTool extends VanturaTool<UpdateInvoiceStatusArgs> {
+  final InvoiceRepository invoiceRepository;
+  final InventoryRepository inventoryRepository;
+
+  UpdateInvoiceStatusTool(this.invoiceRepository, this.inventoryRepository);
+  
+  // Conditionally skip the confirmation modal if it's a low-risk change
   @override
-  bool get requiresConfirmation => true;
+  bool requiresConfirmationFor(UpdateInvoiceStatusArgs args) {
+    // Only pause the loop to ask the user if it deducts real inventory
+    return ['paid', 'cancelled'].contains(args.status); 
+  }
 
   @override
   Map<String, dynamic> get parameters => SchemaHelper.generateSchema({
-    'id': SchemaHelper.numberProperty(description: 'Client ID'),
-    'name': SchemaHelper.stringProperty(description: 'Updated name'),
-    'confirmed': SchemaHelper.booleanProperty(
-      description: 'Set to true ONLY after the user confirms the update.',
+    'invoiceId': SchemaHelper.numberProperty(description: 'Invoice ID'),
+    'status': SchemaHelper.stringProperty(
+      description: 'New status',
+      enumValues: ['draft', 'sent', 'paid', 'cancelled'],
     ),
-  }, required: ['id']);
+    'confirmed': SchemaHelper.booleanProperty(
+      description: 'Set to true ONLY after the user confirms.',
+    ),
+  }, required: ['invoiceId', 'status']);
 
   @override
-  Future<String> execute(UpdateClientArgs args) async {
-    // Business logic here
-    return 'Client updated successfully';
+  Future<String> execute(UpdateInvoiceStatusArgs args) async {
+    final invoice = await invoiceRepository.getInvoice(args.invoiceId);
+    if (invoice == null) return 'Invoice not found';
+
+    // Update status
+    final newStatus = InvoiceStatus.values.firstWhere(
+      (e) => e.name == args.status,
+      orElse: () => invoice.status,
+    );
+
+    final updated = invoice.copyWith(status: newStatus);
+    await invoiceRepository.updateInvoice(updated);
+
+    // Business logic: decrement inventory on payment
+    if (newStatus == InvoiceStatus.paid && invoice.status != InvoiceStatus.paid) {
+      for (var item in invoice.items) {
+        await inventoryRepository.updateStock(item.description, -item.quantity.toInt());
+      }
+    }
+
+    return 'Invoice status updated successfully to ${args.status}';
   }
 }
 ```
@@ -231,57 +315,6 @@ class CreateInvoiceTool extends VanturaTool<CreateInvoiceArgs> {
       },
     },
   }, required: ['clientId', 'items']);
-}
-```
-
-#### Business Logic Integration
-Tools can execute complex workflows, such as cross-entity updates or analytics:
-
-```dart
-class UpdateInvoiceStatusTool extends VanturaTool<UpdateInvoiceStatusArgs> {
-  final InvoiceRepository invoiceRepository;
-  final InventoryRepository inventoryRepository;
-
-  UpdateInvoiceStatusTool(this.invoiceRepository, this.inventoryRepository);
-
-  @override
-  bool get requiresConfirmation => true;
-
-  @override
-  Map<String, dynamic> get parameters => SchemaHelper.generateSchema({
-    'invoiceId': SchemaHelper.numberProperty(description: 'Invoice ID'),
-    'status': SchemaHelper.stringProperty(
-      description: 'New status',
-      enumValues: ['draft', 'sent', 'paid'],
-    ),
-    'confirmed': SchemaHelper.booleanProperty(
-      description: 'Set to true ONLY after user confirms.',
-    ),
-  }, required: ['invoiceId', 'status']);
-
-  @override
-  Future<String> execute(UpdateInvoiceStatusArgs args) async {
-    final invoice = await invoiceRepository.getInvoice(args.invoiceId);
-    if (invoice == null) return 'Invoice not found';
-
-    // Update status
-    final newStatus = InvoiceStatus.values.firstWhere(
-      (e) => e.name == args.status,
-      orElse: () => invoice.status,
-    );
-
-    final updated = invoice.copyWith(status: newStatus);
-    await invoiceRepository.updateInvoice(updated);
-
-    // Business logic: decrement inventory on payment
-    if (newStatus == InvoiceStatus.paid && invoice.status != InvoiceStatus.paid) {
-      for (var item in invoice.items) {
-        await inventoryRepository.updateStock(item.description, -item.quantity.toInt());
-      }
-    }
-
-    return 'Invoice status updated to ${args.status}';
-  }
 }
 ```
 
@@ -331,15 +364,22 @@ await for (final r in coordinator.runStreaming('Create an invoice for \$50')) { 
 
 ## 🛡️ Error Handling & Resilience
 
-Vantura includes hooks for structured telemetry:
+Vantura includes robust hooks for structured telemetry:
 
 ```dart
 final agent = VanturaAgent(
   // ...
   onToolError: (tool, error, stack) => FirebaseCrashlytics.instance.recordError(error, stack),
   onWarning: (msg) => print('⚠️ Vantura Warning: $msg'),
-  onAgentFailure: (err) => showGlobalErrorSnackBar(err),
+  onAgentFailure: (err, stack) => showGlobalErrorSnackBar(err),
 );
+
+// Vantura throws standardized exceptions you can catch:
+try {
+  await agent.run('...');
+} on VanturaException catch (e) {
+  print('Caught Vantura-specific error: $e');
+}
 ```
 
 ---
@@ -348,6 +388,8 @@ final agent = VanturaAgent(
 
 Vantura is built for production environments where data privacy is paramount.
 
+- **Hardened Input Sanitization**: Automatic length validation (100KB) and control-character stripping (SEC-003) to prevent OOM attacks and prompt injection.
+- **Resilient Tooling**: Agents now handle hallucinated tool names gracefully by informing the LLM and allowing self-correction instead of crashing the loop (SEC-002).
 - **Automatic Redaction**: Integrated logger automatically strips API keys, Authorization tokens, and sensitive fields from logs.
 - **Privacy-First Logging**: `logSensitiveContent` is disabled by default, ensuring user prompts and AI responses never touch your console logs in production.
 - **Anti-SSRF Guard**: Built-in tools like `ApiTestTool` feature hostname blacklisting to prevent internal network scanning.

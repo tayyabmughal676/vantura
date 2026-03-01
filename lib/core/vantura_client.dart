@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'logger.dart';
 import 'cancellation_token.dart';
+import 'exceptions.dart';
+import 'llm_client.dart';
 
 /// Client for interacting with the Vantura AI API.
 ///
 /// Handles authentication, request building, and response parsing for chat completions.
-class VanturaClient {
+class VanturaClient implements LlmClient {
   /// API key for authentication.
   final String apiKey;
 
@@ -34,6 +36,10 @@ class VanturaClient {
   /// Default stop sequences.
   final dynamic stop;
 
+  /// Callback emitted when a request is about to be retried.
+  /// Provides the attempt number (1-based), next delay, and the error that triggered it.
+  final void Function(int attempt, Duration nextDelay, dynamic error)? onRetry;
+
   /// Shared HTTP client for connection pooling.
   final http.Client _httpClient;
 
@@ -48,6 +54,7 @@ class VanturaClient {
     this.stream,
     this.reasoningEffort,
     this.stop,
+    this.onRetry,
     http.Client? httpClient,
   }) : _httpClient = httpClient ?? http.Client();
 
@@ -111,7 +118,7 @@ class VanturaClient {
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       if (cancellationToken?.isCancelled == true) {
         sdkLogger.info('API request cancelled by user', tag: 'API');
-        throw Exception('Request cancelled by user');
+        throw VanturaCancellationException();
       }
 
       try {
@@ -170,8 +177,9 @@ class VanturaClient {
           return data;
         } else if (response.statusCode == 429) {
           if (attempt == maxRetries) {
-            throw Exception(
-              'Rate limit exceeded after $maxRetries attempts: ${response.body}',
+            throw VanturaRateLimitException(
+              'Rate limit exceeded after $maxRetries attempts',
+              responseBody: response.body,
             );
           }
 
@@ -188,6 +196,14 @@ class VanturaClient {
             extra: {'response_redacted': '[REDACTED]'},
           );
 
+          if (onRetry != null) {
+            onRetry!(
+              attempt,
+              Duration(seconds: retrySeconds),
+              'Rate limited (429)',
+            );
+          }
+
           await Future.delayed(Duration(seconds: retrySeconds));
           continue;
         } else {
@@ -200,7 +216,11 @@ class VanturaClient {
                 'response_body': response.body,
             },
           );
-          throw Exception('Failed to get response: ${response.statusCode}');
+          throw VanturaApiException(
+            'Failed to get response',
+            statusCode: response.statusCode,
+            responseBody: response.body,
+          );
         }
       } on http.ClientException catch (e) {
         if (attempt == maxRetries) {
@@ -216,6 +236,11 @@ class VanturaClient {
           tag: 'API',
           error: e,
         );
+
+        if (onRetry != null) {
+          onRetry!(attempt, baseDelay * attempt, e);
+        }
+
         await Future.delayed(baseDelay * attempt);
       } catch (e, stackTrace) {
         sdkLogger.error(
@@ -301,7 +326,11 @@ class VanturaClient {
             if (sdkLogger.options.logSensitiveContent) 'error_body': errorBody,
           },
         );
-        throw Exception('Streaming request failed: ${response.statusCode}');
+        throw VanturaApiException(
+          'Streaming requested failed',
+          statusCode: response.statusCode,
+          responseBody: errorBody,
+        );
       }
 
       yield* response.stream

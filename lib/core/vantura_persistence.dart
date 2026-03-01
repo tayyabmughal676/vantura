@@ -1,3 +1,5 @@
+import 'agent_state_checkpoint.dart';
+
 /// Interface for persistent storage of agent memory.
 ///
 /// This allows the SDK to remain decoupled from any specific database implementation.
@@ -19,4 +21,15 @@ abstract class VanturaPersistence {
 
   /// Deletes older messages to maintain a specific limit.
   Future<void> deleteOldMessages(int limit);
+
+  /// Saves the agent's execution checkpoint to persistent storage.
+  /// This allows resuming exactly where the agent left off if interrupted.
+  Future<void> saveCheckpoint(AgentStateCheckpoint checkpoint) async {}
+
+  /// Loads the most recent execution checkpoint.
+  /// Returns null if no checkpoint exists.
+  Future<AgentStateCheckpoint?> loadCheckpoint() async => null;
+
+  /// Clears the saved checkpoint (e.g., after successful completion).
+  Future<void> clearCheckpoint() async {}
 }
