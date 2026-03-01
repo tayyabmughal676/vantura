@@ -1,6 +1,5 @@
 name: vantura
-description: >-
-  A Stateful Agentic AI Framework for Flutter that enables building intelligent LLM-powered agents directly on-device. Features ReAct loop implementation, state recovery, custom tools, memory persistence, multi-agent coordination, and seamless UI integration for creating advanced AI experiences in Flutter apps.
+description: A Stateful Agentic AI Framework for Flutter enabling on-device LLM agents with ReAct loops, state recovery, custom tools, and seamless coordination.
 version: 1.0.0
 homepage: https://github.com/tayyabmughal676/vantura
 repository: https://github.com/tayyabmughal676/vantura
