@@ -55,7 +55,8 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.5.4
   intl: ^0.20.2
-  vantura: ^0.1.2
+  vantura:
+    path: ../
 
 dev_dependencies:
   flutter_test:

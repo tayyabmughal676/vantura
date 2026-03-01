@@ -44,3 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /.env
+.env.*
+!.env.example
+!.env.template
+*.local
+test_output.txt

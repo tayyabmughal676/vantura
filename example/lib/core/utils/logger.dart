@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:vantura/core/logger.dart';
+
 import 'logging_config.dart';
 
 class AppLogger implements VanturaLogger {

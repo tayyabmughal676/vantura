@@ -28,8 +28,11 @@ Orbit is an **official example project** for the **Vantura Agentic AI Framework*
 
 ### 🤖 AI-Powered Business Management
 - **Intelligent Chat Interface**: Natural language interactions with AI agents
+- **Multi-Provider Support**: Support for OpenAI, Anthropic Claude, Google Gemini, and Groq
+- **Runtime Provider Switching**: Swap LLM providers at runtime without restarting the app
 - **Automated Business Operations**: AI-driven client onboarding, inventory management, and invoicing
 - **Context-Aware Responses**: Agents understand business context and provide relevant insights
+- **Persistent Agent States**: Advanced session recovery using database-backed checkpoints
 
 ### 🏢 Complete Business Suite
 - **Client Management**: Add, update, delete, and search clients
@@ -85,8 +88,9 @@ lib/
 
 ### AI & Agent Framework
 - **[Vantura SDK](https://pub.dev/packages/vantura)**: Agentic AI framework for intelligent agents
+- **Multi-Client Architecture**: Support for `AnthropicClient`, `GeminiClient`, and `VanturaClient`
 - **Vantura Tools**: Modular tool system for agent capabilities
-- **Groq API**: High-performance LLM inference
+- **Provider Flexibility**: Deep integration with Groq, OpenAI, Anthropic, and Google Gemini
 
 ### State Management & DI
 - **Riverpod**: Reactive state management and dependency injection
@@ -113,7 +117,7 @@ Before running Orbit, ensure you have:
 - **Dart SDK** >= 3.0.0
 - **Android Studio** or **VS Code** with Flutter extensions
 - **Git** for version control
-- **Groq API Key** for AI functionality
+- **API Keys**: At least one key from Groq, Anthropic, Google (Gemini), or OpenAI
 
 ### System Requirements
 - **iOS**: macOS with Xcode 14+
@@ -132,32 +136,74 @@ cd orbit-vantura-example
 ```bash
 flutter pub get
 ```
-
 ### 3. Verify Installation
 ```bash
 flutter doctor
 ```
 
-## Configuration
+## State Management Interoperability
 
-### Environment Setup
-Create a `.env` file in the project root:
+Vantura is designed to integrate seamlessly with any Flutter state management solution. In this example, we use **Riverpod**, but the same principles apply to Provider, Bloc, or GetX.
 
-```env
-# Vantura AI Configuration
-GROQ_API_KEY=your_groq_api_key_here
-BASE_URL=https://api.groq.com
-MODEL=llama-3.3-70b-versatile
+### The `VanturaState` Approach
+The SDK exposes `VanturaState`, which is a standard `ChangeNotifier`. You can easily listen to this state to drive your UI:
 
-# Optional: Custom configurations
-LOG_LEVEL=debug
-DATABASE_PATH=orbit.db
+#### Riverpod Example (As seen in Orbit)
+```dart
+// Expose the state as a ChangeNotifierProvider
+final agentStateProvider = ChangeNotifierProvider((ref) => VanturaState());
+
+// Watch it in your UI
+Widget build(BuildContext context, WidgetRef ref) {
+  final agentState = ref.watch(agentStateProvider);
+  if (agentState.isRunning) return Text(agentState.currentStep);
+}
 ```
 
-### API Key Setup
-1. Sign up at [Groq Console](https://console.groq.com)
-2. Generate an API key
-3. Add the key to your `.env` file
+#### Provider Example
+```dart
+ChangeNotifierProvider(
+  create: (_) => VanturaState(),
+  child: MyApp(),
+);
+// Use context.watch<VanturaState>() in your widgets.
+```
+
+#### Bloc Example
+```dart
+// Map VanturaState changes to Bloc events
+vanturaState.addListener(() {
+  bloc.add(AgentStateChanged(vanturaState.isRunning, vanturaState.currentStep));
+});
+```
+
+## Getting Started
+
+1. **Clone the repository.**
+   - Update the configuration values:
+     ```env
+     # Primary provider (groq, anthropic, gemini, openai, or together)
+     PROVIDER=groq
+     
+     # API Keys (fill at least one)
+     GROQ_API_KEY=your_groq_key
+     ANTHROPIC_API_KEY=your_anthropic_key
+     GEMINI_API_KEY=your_gemini_key
+     OPENAI_API_KEY=your_openai_key
+     
+     # Default model for initial setup
+     MODEL=llama-3.3-70b-versatile
+     ```
+   *(Note: Orbit features a **Provider Settings** screen that allows you to swap these values at runtime for testing).*
+
+3. **Run the example:**
+   ```bash
+   cd example
+   flutter pub get
+   flutter run
+   ```
+
+## Configuration
 
 ### Build Configuration
 The app supports multiple build flavors:
@@ -350,8 +396,10 @@ Migrations are handled through `DatabaseHelper` with version-based upgrades.
 The Vantura agent is configured with:
 - **Custom Instructions**: Business-specific prompt engineering
 - **Tool Registry**: Dynamic tool loading and execution
-- **Memory System**: Persistent conversation context
-- **Error Handling**: Comprehensive failure recovery
+- **Memory System**: SQL-backed persistent conversation context
+- **Checkpoints**: Reliable agent state recovery via `agent_checkpoints` table
+- **Multi-Provider Adapter**: Dynamic switching between `AnthropicClient`, `GeminiClient`, and `VanturaClient`
+- **Error Handling**: Comprehensive failure recovery with custom retry callbacks
 - **Logging Integration**: Full observability with AppLogger
 
 ## Contributing

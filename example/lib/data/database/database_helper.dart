@@ -1,6 +1,8 @@
 import 'dart:convert';
-import 'package:sqflite/sqflite.dart';
+
 import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
 import '../../domain/entities/client.dart';
 import '../../domain/entities/inventory_item.dart';
 import '../../domain/entities/invoice.dart';
@@ -26,7 +28,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -99,6 +101,7 @@ class DatabaseHelper {
         FOREIGN KEY (relatedClientId) REFERENCES clients (id)
       )
     ''');
+
     // Create chat_messages table for conversation persistence
     await db.execute('''
       CREATE TABLE chat_messages (
@@ -109,6 +112,18 @@ class DatabaseHelper {
         toolCallId TEXT,
         toolCalls TEXT,
         createdAt TEXT NOT NULL
+      )
+    ''');
+
+    // Create agent_checkpoints table for task resumption
+    await db.execute('''
+      CREATE TABLE agent_checkpoints (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        agentName TEXT NOT NULL,
+        lastPrompt TEXT NOT NULL,
+        checkpointData TEXT NOT NULL,
+        isRunning INTEGER DEFAULT 0,
+        updatedAt TEXT NOT NULL
       )
     ''');
   }
@@ -128,7 +143,7 @@ class DatabaseHelper {
           'ALTER TABLE ledger ADD COLUMN relatedClientId INTEGER',
         );
       } catch (e) {
-        // Columns might already exist in some versions
+        // Columns might already exist
       }
     }
     if (oldVersion < 4) {
@@ -145,6 +160,18 @@ class DatabaseHelper {
     if (oldVersion < 5) {
       await db.execute('ALTER TABLE chat_messages ADD COLUMN toolCallId TEXT');
       await db.execute('ALTER TABLE chat_messages ADD COLUMN toolCalls TEXT');
+    }
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE agent_checkpoints (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          agentName TEXT NOT NULL,
+          lastPrompt TEXT NOT NULL,
+          checkpointData TEXT NOT NULL,
+          isRunning INTEGER DEFAULT 0,
+          updatedAt TEXT NOT NULL
+        )
+      ''');
     }
   }
 
@@ -175,6 +202,34 @@ class DatabaseHelper {
   Future<void> clearChatHistory() async {
     final db = await database;
     await db.delete('chat_messages');
+  }
+
+  // Agent Checkpoint operations
+  Future<void> saveCheckpoint(Map<String, dynamic> checkpointJson) async {
+    final db = await database;
+    await db.insert('agent_checkpoints', {
+      'id': 1, // We only keep one active checkpoint for simplicity in example
+      'agentName': checkpointJson['agentName'] ?? 'default',
+      'lastPrompt': checkpointJson['lastPrompt'] ?? '',
+      'checkpointData': jsonEncode(checkpointJson),
+      'isRunning': (checkpointJson['isRunning'] as bool? ?? false) ? 1 : 0,
+      'updatedAt': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, dynamic>?> loadCheckpoint() async {
+    final db = await database;
+    final maps = await db.query('agent_checkpoints', where: 'id = 1');
+    if (maps.isNotEmpty) {
+      final jsonStr = maps.first['checkpointData'] as String;
+      return jsonDecode(jsonStr) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  Future<void> clearCheckpoint() async {
+    final db = await database;
+    await db.delete('agent_checkpoints', where: 'id = 1');
   }
 
   Future<void> deleteOldMessages(int limit) async {

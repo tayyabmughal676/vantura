@@ -1,17 +1,19 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../domain/repositories/client_repository.dart';
-import '../../domain/repositories/inventory_repository.dart';
-import '../../domain/repositories/invoice_repository.dart';
-import '../../domain/repositories/ledger_repository.dart';
+
+import '../../data/database/database_helper.dart';
 import '../../data/repositories/client_repository_impl.dart';
 import '../../data/repositories/inventory_repository_impl.dart';
 import '../../data/repositories/invoice_repository_impl.dart';
 import '../../data/repositories/ledger_repository_impl.dart';
-import '../../data/database/database_helper.dart';
 import '../../domain/entities/client.dart';
 import '../../domain/entities/inventory_item.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/ledger_entry.dart';
+import '../../domain/repositories/client_repository.dart';
+import '../../domain/repositories/inventory_repository.dart';
+import '../../domain/repositories/invoice_repository.dart';
+import '../../domain/repositories/ledger_repository.dart';
+import '../../domain/use_cases/chat_service.dart';
 
 part 'business_providers.g.dart';
 
@@ -19,6 +21,32 @@ part 'business_providers.g.dart';
 @riverpod
 DatabaseHelper databaseHelper(Ref ref) {
   return DatabaseHelper();
+}
+
+@Riverpod(keepAlive: true)
+ChatService chatService(Ref ref) {
+  final service = ChatService(
+    clientRepository: ref.watch(clientRepositoryProvider),
+    inventoryRepository: ref.watch(inventoryRepositoryProvider),
+    invoiceRepository: ref.watch(invoiceRepositoryProvider),
+    ledgerRepository: ref.watch(ledgerRepositoryProvider),
+    onRefresh: () {
+      // Refresh all business data when agent modifies it
+      ref.invalidate(clientsProvider);
+      ref.invalidate(inventoryProvider);
+      ref.invalidate(invoicesProvider);
+      ref.invalidate(ledgerEntriesProvider);
+      ref.invalidate(totalIncomeProvider);
+      ref.invalidate(totalExpensesProvider);
+      ref.invalidate(lowStockCountProvider);
+    },
+  );
+
+  ref.onDispose(() {
+    service.dispose();
+  });
+
+  return service;
 }
 
 // Repository providers

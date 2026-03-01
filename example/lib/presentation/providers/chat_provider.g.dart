@@ -32,7 +32,7 @@ final class ChatProvider extends $AsyncNotifierProvider<Chat, ChatState> {
   Chat create() => Chat();
 }
 
-String _$chatHash() => r'1e72e7d485b029dd0244f4cf16bd4a351b75d45d';
+String _$chatHash() => r'9af48e9f365c171c06699e8a07c1097e82ed33f8';
 
 abstract class _$Chat extends $AsyncNotifier<ChatState> {
   FutureOr<ChatState> build();

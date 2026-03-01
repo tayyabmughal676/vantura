@@ -976,11 +976,10 @@ packages:
   vantura:
     dependency: "direct main"
     description:
-      name: vantura
-      sha256: "769726a537df4c563e2e278cf42dce859317d06855d23eed6b2f87726297ef4a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.2"
+      path: ".."
+      relative: true
+    source: path
+    version: "1.0.0"
   vector_math:
     dependency: transitive
     description:

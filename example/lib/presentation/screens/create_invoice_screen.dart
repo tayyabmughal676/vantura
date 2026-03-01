@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../domain/entities/invoice.dart';
+
 import '../../domain/entities/client.dart';
 import '../../domain/entities/inventory_item.dart';
+import '../../domain/entities/invoice.dart';
 import '../providers/business_providers.dart';
 
 class CreateInvoiceScreen extends ConsumerStatefulWidget {

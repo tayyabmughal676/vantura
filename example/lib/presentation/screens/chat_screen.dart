@@ -1,18 +1,17 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import '../../domain/entities/message.dart';
-import '../providers/chat_provider.dart';
-import 'package:vantura/core/cancellation_token.dart';
 import 'package:vantura/core/index.dart'; // To get TokenUsage if needed
-import '../../domain/use_cases/chat_service.dart';
-import '../providers/business_providers.dart';
-import '../../core/utils/logger.dart';
 import 'package:vantura/markdown/markdown.dart';
+
+import '../../core/utils/logger.dart';
+import '../../domain/entities/message.dart';
+import '../providers/business_providers.dart';
+import '../providers/chat_provider.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -25,44 +24,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     with TickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late final ChatService _chatService;
   CancellationToken? _cancellationToken;
 
   @override
   void initState() {
     super.initState();
     appLogger.logScreenNavigation('app_start', 'chat_screen');
-    _chatService = ChatService(
-      clientRepository: ref.read(clientRepositoryProvider),
-      inventoryRepository: ref.read(inventoryRepositoryProvider),
-      invoiceRepository: ref.read(invoiceRepositoryProvider),
-      ledgerRepository: ref.read(ledgerRepositoryProvider),
-      onNavigate: (screen, params) {
-        if (!mounted) return;
-        // Handle root path mapping
-        final route = screen == 'dashboard' ? '/' : '/$screen';
-        context.push(route, extra: params);
-        appLogger.info('Agent triggered navigation to $route', tag: 'UI');
-      },
-      onRefresh: () {
-        appLogger.info(
-          'Triggering manual provider invalidation from agent action',
-          tag: 'UI',
-        );
-        ref.invalidate(clientsProvider);
-        ref.invalidate(inventoryProvider);
-        ref.invalidate(invoicesProvider);
-        ref.invalidate(ledgerEntriesProvider);
-        ref.invalidate(totalIncomeProvider);
-        ref.invalidate(totalExpensesProvider);
-        ref.invalidate(lowStockCountProvider);
-      },
-    );
+    // We'll set the navigation callback here for this specific instance
+    ref.read(chatServiceProvider).onNavigate = (screen, params) {
+      if (!mounted) return;
+      final route = screen == 'dashboard' ? '/' : '/$screen';
+      context.push(route, extra: params);
+    };
   }
 
   @override
   void dispose() {
-    _chatService.dispose();
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -102,15 +79,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
       _cancellationToken = CancellationToken();
 
-      final stream = _chatService.streamMessage(
-        userMessage,
-        cancellationToken: _cancellationToken,
-        onUsage: (usage) {
-          ref
-              .read(chatProvider.notifier)
-              .appendToLastMessage('\n\n_✓ Used ${usage.totalTokens} tokens_');
-        },
-      );
+      final stream = ref
+          .read(chatServiceProvider)
+          .streamMessage(
+            userMessage,
+            cancellationToken: _cancellationToken,
+            onUsage: (usage) {
+              ref
+                  .read(chatProvider.notifier)
+                  .appendToLastMessage(
+                    '\n\n_✓ Used ${usage.totalTokens} tokens_',
+                  );
+            },
+          );
       bool receivedContent = false;
 
       await for (final chunk in stream) {
@@ -126,6 +107,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
 
       appLogger.debug('Streaming response sequence completed', tag: 'UI');
+    } on VanturaCancellationException {
+      appLogger.info('Generation cancelled by user', tag: 'UI');
+      ref
+          .read(chatProvider.notifier)
+          .appendToLastMessage('\n\n_✓ Generation stopped by user_');
+    } on VanturaToolException catch (e) {
+      appLogger.error('Tool exception caught in UI', tag: 'UI', error: e);
+      ref
+          .read(chatProvider.notifier)
+          .appendToLastMessage('\n\n_⚠️ Tool Error: ${e.message}_');
+    } on VanturaRateLimitException catch (e) {
+      appLogger.warning('Rate limit hit', tag: 'UI', error: e);
+      ref
+          .read(chatProvider.notifier)
+          .appendToLastMessage(
+            '\n\n_⚠️ Rate Limit: Please slow down and try again._',
+          );
+    } on VanturaException catch (e) {
+      appLogger.error('Vantura exception caught in UI', tag: 'UI', error: e);
+      ref
+          .read(chatProvider.notifier)
+          .appendToLastMessage('\n\n_⚠️ System Error: ${e.message}_');
     } catch (e, stackTrace) {
       appLogger.error(
         'Error streaming message via UI',
@@ -133,11 +136,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         error: e,
         stackTrace: stackTrace,
       );
-      ref.read(chatProvider.notifier).appendToLastMessage('\n\nError: $e');
+      ref
+          .read(chatProvider.notifier)
+          .appendToLastMessage('\n\n_⚠️ Error: ${e}_');
     } finally {
       ref.read(chatProvider.notifier).setLoading(false);
     }
     _scrollToBottom();
+  }
+
+  /// Handles quick-reply taps (e.g. "Yes, confirm" / "No, cancel")
+  /// from the Human-in-the-Loop confirmation cards.
+  void _handleQuickReply(String reply) {
+    _controller.text = reply;
+    _sendMessage();
   }
 
   void _scrollToBottom() {
@@ -235,7 +247,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   itemBuilder: (context, index) {
                     if (index < messages.length) {
                       final message = messages[index];
-                      return MessageBubble(message: message);
+                      return MessageBubble(
+                        message: message,
+                        onSendReply: _handleQuickReply,
+                      );
                     } else {
                       return Padding(
                         padding: const EdgeInsets.symmetric(
@@ -396,8 +411,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
 class MessageBubble extends StatefulWidget {
   final Message message;
+  final void Function(String reply)? onSendReply;
 
-  const MessageBubble({super.key, required this.message});
+  const MessageBubble({super.key, required this.message, this.onSendReply});
 
   @override
   State<MessageBubble> createState() => _MessageBubbleState();
@@ -530,6 +546,11 @@ class _MessageBubbleState extends State<MessageBubble>
                   ),
                 ),
               ),
+              // --- Human-in-the-Loop Confirmation Card ---
+              // When the agent asks for confirmation (delete, update, etc.),
+              // show interactive Approve / Deny quick-reply buttons.
+              if (!isUser && _isConfirmationRequest(widget.message.text))
+                _buildConfirmationCard(),
             ],
           ),
         ),
@@ -555,6 +576,142 @@ class _MessageBubbleState extends State<MessageBubble>
           isUser ? Icons.person : Icons.auto_awesome,
           size: 16,
           color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  /// Detects whether the agent message is asking the user for confirmation
+  /// on a sensitive operation (delete, update, ledger entry, etc.).
+  bool _isConfirmationRequest(String text) {
+    final lower = text.toLowerCase();
+    final confirmationPhrases = [
+      'would you like to confirm',
+      'would you like me to proceed',
+      'shall i proceed',
+      'do you want me to',
+      'please confirm',
+      'are you sure',
+      'would you like to delete',
+      'would you like to update',
+      'confirm this action',
+      'approve this',
+      'would you like to go ahead',
+      'should i go ahead',
+    ];
+    return confirmationPhrases.any((phrase) => lower.contains(phrase));
+  }
+
+  /// Builds the interactive confirmation card with Approve / Deny buttons.
+  Widget _buildConfirmationCard() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, right: 40),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.amberAccent.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.shield_outlined,
+                  color: Colors.amberAccent.withValues(alpha: 0.9),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Action Requires Confirmation',
+                  style: GoogleFonts.inter(
+                    color: Colors.amberAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _ConfirmationButton(
+                    label: '\u2713  Approve',
+                    color: const Color(0xFF00C853),
+                    onTap: () => widget.onSendReply?.call('Yes, confirm'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _ConfirmationButton(
+                    label: '\u2715  Deny',
+                    color: const Color(0xFFFF5252),
+                    onTap: () => widget.onSendReply?.call('No, cancel'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A styled button used inside the Human-in-the-Loop confirmation card.
+/// Demonstrates how Vantura's `requiresConfirmation` tool property
+/// can be surfaced as an interactive UI element.
+class _ConfirmationButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ConfirmationButton({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.4)),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ),
       ),
     );

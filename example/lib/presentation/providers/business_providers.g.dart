@@ -50,6 +50,47 @@ final class DatabaseHelperProvider
 
 String _$databaseHelperHash() => r'd9a91b257d3ed9a4f2d87bd829e17dc900678685';
 
+@ProviderFor(chatService)
+final chatServiceProvider = ChatServiceProvider._();
+
+final class ChatServiceProvider
+    extends $FunctionalProvider<ChatService, ChatService, ChatService>
+    with $Provider<ChatService> {
+  ChatServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'chatServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$chatServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<ChatService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ChatService create(Ref ref) {
+    return chatService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ChatService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ChatService>(value),
+    );
+  }
+}
+
+String _$chatServiceHash() => r'b0eb74432bd9838be86be86a2cce2e5713d43ab1';
+
 @ProviderFor(clientRepository)
 final clientRepositoryProvider = ClientRepositoryProvider._();
 

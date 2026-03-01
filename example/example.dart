@@ -1,15 +1,35 @@
-import 'package:vantura/core/index.dart';
-import 'package:vantura/tools/index.dart';
+import 'package:flutter/widgets.dart';
+import 'package:vantura/vantura.dart';
 
 /// A simple example showing how to initialize and use a Vantura agent.
 void main() async {
-  // 1. Initialize the Vantura Client
+  // 1. Initialize the LLM Client
+  // Vantura supports multi-provider swapping out-of-the-box via the LlmClient interface.
   // In a real app, use your actual API key and base URL.
-  final client = VanturaClient(
+  final LlmClient client = VanturaClient(
     apiKey: 'your_api_key_here',
     baseUrl: 'https://api.openai.com/v1/chat/completions',
     model: 'gpt-4o',
   );
+
+  // Example: Hot-swap to Anthropic Claude
+  // final LlmClient claudeClient = AnthropicClient(
+  //   apiKey: 'your_anthropic_key',
+  //   model: 'claude-3-7-sonnet-latest',
+  // );
+
+  // Example: Hot-swap to Google Gemini
+  // final LlmClient geminiClient = GeminiClient(
+  //   apiKey: 'your_gemini_key',
+  //   model: 'gemini-2.5-pro',
+  // );
+
+  // 1b. Checkpointing example (requires persistence implementation)
+  // If the app was closed during generation, you can reload the interrupted state:
+  // final checkpoint = await memory.persistence?.loadCheckpoint();
+  // if (checkpoint != null && checkpoint.isRunning) {
+  //   agent.resume(checkpoint).listen((response) => print(response.textChunk));
+  // }
 
   // 2. Setup Memory and State
   final state = VanturaState();
@@ -27,24 +47,32 @@ void main() async {
   );
 
   // 4. Run the Agent (Non-streaming)
-  print('Thinking...');
-  final response = await agent.run(
-    'Calculate 15% of 250 and check network status.',
-  );
-
-  print('Assistant: ${response.text}');
-
-  // 5. Run the Agent (Streaming)
-  print('\nStreaming response:');
-  final stream = agent.runStreaming('Tell me a short joke.');
-
-  await for (final chunk in stream) {
-    if (chunk.textChunk != null) {
-      // In a Flutter app, you would update your UI state here.
-      print(chunk.textChunk);
-    }
+  // We wrap this in a try-catch to handle standardized VanturaException types.
+  debugPrint('Thinking...');
+  try {
+    final response = await agent.run(
+      'Calculate 15% of 250 and check network status.',
+    );
+    debugPrint('Assistant: ${response.text}');
+  } on VanturaException catch (e) {
+    debugPrint('Agent execution failed: $e');
   }
 
-  // Cleanup
+  // 5. Run the Agent (Streaming token-by-token)
+  debugPrint('\nStreaming response:');
+  try {
+    final stream = agent.runStreaming('Tell me a short joke.');
+
+    await for (final response in stream) {
+      if (response.textChunk != null) {
+        // In a terminal, use stdout.write for smooth streaming feel
+        debugPrint(response.textChunk);
+      }
+    }
+  } on VanturaException catch (e) {
+    debugPrint('Streaming failed: $e');
+  }
+
+  // Cleanup: Always close the client to release HTTP resources
   client.close();
 }

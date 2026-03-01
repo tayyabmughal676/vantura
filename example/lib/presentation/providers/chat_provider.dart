@@ -25,13 +25,17 @@ class Chat extends _$Chat {
     return ChatState(messages: []);
   }
 
-  Future<void> addMessage(String text, bool isUser) async {
+  Future<void> addMessage(
+    String text,
+    bool isUser, {
+    ToolRequest? toolRequest,
+  }) async {
     // Update state
     state = AsyncData(
       state.value!.copyWith(
         messages: [
           ...state.value!.messages,
-          Message(text: text, isUser: isUser),
+          Message(text: text, isUser: isUser, toolRequest: toolRequest),
         ],
       ),
     );

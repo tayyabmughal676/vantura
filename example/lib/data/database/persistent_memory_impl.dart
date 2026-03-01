@@ -1,4 +1,5 @@
 import 'package:vantura/core/index.dart';
+
 import 'database_helper.dart';
 
 /// App-side implementation of [VanturaPersistence] using [DatabaseHelper].
@@ -37,5 +38,24 @@ class PersistentMemoryImpl implements VanturaPersistence {
   @override
   Future<void> deleteOldMessages(int limit) async {
     await _db.deleteOldMessages(limit);
+  }
+
+  @override
+  Future<void> saveCheckpoint(AgentStateCheckpoint checkpoint) async {
+    await _db.saveCheckpoint(checkpoint.toJson());
+  }
+
+  @override
+  Future<AgentStateCheckpoint?> loadCheckpoint() async {
+    final json = await _db.loadCheckpoint();
+    if (json != null) {
+      return AgentStateCheckpoint.fromJson(json);
+    }
+    return null;
+  }
+
+  @override
+  Future<void> clearCheckpoint() async {
+    await _db.clearCheckpoint();
   }
 }

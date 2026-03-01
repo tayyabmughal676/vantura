@@ -1,5 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:vantura/core/index.dart';
+import 'package:vantura/tools/index.dart';
+
+import '../../core/config/llm_provider_config.dart';
+import '../../core/network/resilient_http_client.dart';
 import '../../core/utils/logger.dart';
 import '../../data/database/database_helper.dart';
 import '../../data/database/persistent_memory_impl.dart';
@@ -9,20 +15,19 @@ import '../../domain/repositories/invoice_repository.dart';
 import '../../domain/repositories/ledger_repository.dart';
 import '../tools/business_tools.dart';
 import '../tools/navigation_tool.dart';
-import 'package:vantura/core/index.dart';
-import 'package:vantura/tools/index.dart';
 
 /// Manages the lifecycle of a [VanturaAgent], bridging the SDK layer
 /// with the app's business tools and navigation.
 class ChatService {
-  late final VanturaAgent _agent;
-  final Function(String, Map<String, dynamic>?)? onNavigate;
+  late VanturaAgent _agent;
+  Function(String, Map<String, dynamic>?)? onNavigate;
   final Function()? onRefresh;
 
   final ClientRepository _clientRepository;
   final InventoryRepository _inventoryRepository;
   final InvoiceRepository _invoiceRepository;
   final LedgerRepository _ledgerRepository;
+  LlmProviderConfig? _currentProvider;
 
   final _initCompleter = Completer<void>();
 
@@ -40,6 +45,12 @@ class ChatService {
     _initializeAgent();
   }
 
+  /// Updates the LLM provider at runtime and re-initializes the agent.
+  Future<void> updateProvider(LlmProviderConfig provider) async {
+    _currentProvider = provider;
+    await _initializeAgent();
+  }
+
   Future<void> get initialization => _initCompleter.future;
 
   void dispose() {
@@ -50,11 +61,55 @@ class ChatService {
     appLogger.info('Initializing ChatService agent', tag: 'SERVICE');
 
     final state = VanturaState();
-    final client = VanturaClient(
-      apiKey: dotenv.env['GROQ_API_KEY'] ?? '',
-      baseUrl: dotenv.env['BASE_URL'] ?? '',
-      model: dotenv.env['MODEL'] ?? '',
+
+    // Network Resilience: Use a custom HTTP client that logs request/response
+    // metrics, detects slow connections, and tracks health for observability.
+    // This demonstrates VanturaClient's httpClient injection capability.
+    final resilientClient = ResilientHttpClient(
+      timeout: const Duration(seconds: 30),
     );
+
+    final provider = _currentProvider;
+    late final LlmClient client;
+
+    if (provider == null) {
+      // Default fallback to .env config
+      client = VanturaClient(
+        apiKey: dotenv.env['GROQ_API_KEY'] ?? '',
+        baseUrl: dotenv.env['BASE_URL'] ?? '',
+        model: dotenv.env['MODEL'] ?? '',
+        httpClient: resilientClient,
+        onRetry: _handleRetry,
+      );
+    } else {
+      switch (provider.clientType) {
+        case LlmClientType.anthropic:
+          client = AnthropicClient(
+            apiKey: provider.apiKey,
+            model: provider.selectedModel ?? provider.defaultModel,
+            httpClient: resilientClient,
+            onRetry: _handleRetry,
+          );
+          break;
+        case LlmClientType.gemini:
+          client = GeminiClient(
+            apiKey: provider.apiKey,
+            model: provider.selectedModel ?? provider.defaultModel,
+            httpClient: resilientClient,
+            onRetry: _handleRetry,
+          );
+          break;
+        case LlmClientType.vantura:
+          client = VanturaClient(
+            apiKey: provider.apiKey,
+            baseUrl: provider.baseUrl,
+            model: provider.selectedModel ?? provider.defaultModel,
+            httpClient: resilientClient,
+            onRetry: _handleRetry,
+          );
+          break;
+      }
+    }
 
     final dbHelper = DatabaseHelper();
     final persistence = PersistentMemoryImpl(dbHelper);
@@ -152,7 +207,7 @@ GUIDELINES:
     appLogger.info(
       'ChatService agent initialized',
       tag: 'SERVICE',
-      extra: {'tool_count': tools.length, 'model': client.model},
+      extra: {'tool_count': tools.length, 'model': dotenv.env['MODEL']},
     );
 
     _initCompleter.complete();
@@ -198,6 +253,62 @@ GUIDELINES:
     } catch (e, stackTrace) {
       appLogger.error(
         'Error in ChatService streaming',
+        tag: 'SERVICE',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  /// Resumes the agent from its last interrupted persistent checkpoint.
+  Stream<String> resumeLastSession({
+    void Function(TokenUsage)? onUsage,
+    CancellationToken? cancellationToken,
+  }) async* {
+    await initialization;
+
+    appLogger.logUserAction('resume_session_via_service');
+
+    try {
+      final checkpoint = await _agent.memory.persistence?.loadCheckpoint();
+
+      if (checkpoint != null && checkpoint.isRunning) {
+        appLogger.info(
+          'Found interrupted session. Resuming logic loop.',
+          tag: 'SERVICE',
+        );
+
+        // Pass the loaded checkpoint to resume
+        final stream = _agent.resume(
+          checkpoint,
+          cancellationToken: cancellationToken,
+        );
+
+        await for (final response in stream) {
+          if (response.textChunk != null) {
+            yield response.textChunk!;
+          }
+
+          if (response.text != null) {
+            yield response.text!;
+          }
+
+          if (response.usage != null) {
+            onUsage?.call(response.usage!);
+          }
+
+          // If tools are called during the streaming run, refresh the UI
+          if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
+            onRefresh?.call();
+          }
+        }
+      } else {
+        appLogger.info('No active running session to resume.', tag: 'SERVICE');
+      }
+    } catch (e, stackTrace) {
+      appLogger.error(
+        'Error in ChatService checkpoint resumption',
         tag: 'SERVICE',
         error: e,
         stackTrace: stackTrace,
@@ -271,5 +382,13 @@ GUIDELINES:
       );
       rethrow;
     }
+  }
+
+  void _handleRetry(int attempt, Duration delay, dynamic error) {
+    appLogger.warning(
+      'Client retry #$attempt in ${delay.inSeconds}s',
+      tag: 'SERVICE',
+      extra: {'attempt': attempt, 'delay_seconds': delay.inSeconds},
+    );
   }
 }

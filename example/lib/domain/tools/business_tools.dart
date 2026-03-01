@@ -1,3 +1,5 @@
+import 'package:vantura/core/index.dart';
+
 import '../../domain/entities/client.dart';
 import '../../domain/entities/inventory_item.dart';
 import '../../domain/entities/invoice.dart';
@@ -6,7 +8,6 @@ import '../../domain/repositories/client_repository.dart';
 import '../../domain/repositories/inventory_repository.dart';
 import '../../domain/repositories/invoice_repository.dart';
 import '../../domain/repositories/ledger_repository.dart';
-import 'package:vantura/core/index.dart';
 
 /// Tools for managing business data.
 /// These tools allow the agent to interact with clients, inventory, and invoices.
@@ -684,7 +685,13 @@ class UpdateInvoiceStatusTool extends VanturaTool<UpdateInvoiceStatusArgs> {
       'Updates the status of an existing invoice (e.g. mark it as paid)';
 
   @override
-  bool get requiresConfirmation => true;
+  bool requiresConfirmationFor(UpdateInvoiceStatusArgs args) {
+    // CONDITIONAL CONFIRMATION DEMONSTRATOR:
+    // Only require confirmation if marking as paid or cancelled,
+    // as these have accounting or inventory deduction implications.
+    // 'draft' and 'sent' are low-risk and skip confirmation.
+    return ['paid', 'cancelled'].contains(args.status);
+  }
 
   @override
   Map<String, dynamic> get parameters => SchemaHelper.generateSchema(
